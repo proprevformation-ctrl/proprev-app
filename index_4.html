@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PROPREV — Espace Équipe</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#1B3A6B;--orange:#E87722;--green:#1D7044;--red:#C00000;--bg:#F5F5F5;--card:#fff;--border:#E0E0E0;--text:#1A1A1A;--muted:#666}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{background:var(--blue);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-brand{font-size:15px;font-weight:600}
+.header-brand span{color:var(--orange)}
+.nav{display:flex;background:#152e56;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.nav-btn{flex:1;padding:8px 4px 6px;color:rgba(255,255,255,.55);font-size:10px;text-align:center;cursor:pointer;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:50px;white-space:nowrap}
+.nav-btn.active{color:var(--orange);border-bottom:2px solid var(--orange)}
+.nav-icon{font-size:16px}
+.content{flex:1;padding:12px;max-width:650px;margin:0 auto;width:100%}
+.login-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;padding:30px 16px}
+.login-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:380px}
+.user-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px 10px;cursor:pointer;text-align:center;transition:.2s;display:flex;flex-direction:column;align-items:center;gap:6px}
+.user-card:hover{border-color:var(--blue);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.user-card.admin-card{border-color:var(--orange);background:#FFF8F4}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.section-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 8px}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.b-urgent{background:#FDECEA;color:#C00000}.b-important{background:#FEF0E6;color:#884000}.b-normal{background:#EBF5E8;color:#2E6B1A}
+.b-proprev{background:#E3EEF9;color:#0D3D7C}.b-cfa{background:#EEF0FE;color:#3830A8}.b-todo{background:#F0F0F0;color:#555}
+.b-inprogress{background:#FEF0E6;color:#884000}.b-done{background:#EBF5E8;color:#2E6B1A}.b-blocked{background:#FDECEA;color:#C00000}
+.task-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;border-left:4px solid var(--border)}
+.task-card.urgent{border-left-color:var(--red)}.task-card.important{border-left-color:var(--orange)}.task-card.normal{border-left-color:var(--green)}
+.task-title{font-size:13px;font-weight:600;margin:6px 0 4px}.task-meta{font-size:11px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.task-client{font-weight:600;color:var(--blue)}.task-notes{font-size:11px;color:var(--muted);font-style:italic;margin:2px 0}
+.procedure-box{background:#F8F9FA;border-radius:8px;padding:10px;font-size:12px;color:#444;white-space:pre-line;line-height:1.7;display:none;margin-top:8px;border-left:3px solid var(--blue)}
+.procedure-box.open{display:block}
+.task-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.alert-card{border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:4px solid}
+.alert-critical{background:#FDECEA;border-color:#E53935}.alert-important{background:#FEF0E6;border-color:var(--orange)}
+.alert-title{font-size:13px;font-weight:600;margin-bottom:2px}.alert-detail{font-size:11px;color:var(--muted)}
+.alert-footer{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+.btn{border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer;background:var(--card);color:var(--text);font-family:inherit;transition:.15s}
+.btn:hover{background:#F0F0F0}.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-orange{background:var(--orange);color:#fff;border-color:var(--orange)}.btn-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red)}.btn-sm{padding:4px 10px;font-size:11px}
+.btn-block{width:100%;display:block;text-align:center;margin-top:8px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.stat-num{font-size:26px;font-weight:700}.stat-label{font-size:11px;color:var(--muted);margin-top:2px}
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 190px);min-height:350px}
+.chat-messages{flex:1;overflow-y:auto;padding-bottom:10px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:88%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.6}
+.msg-user{background:var(--blue);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg-ai{background:var(--card);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
+.msg-thinking{color:var(--muted);font-style:italic;font-size:12px;align-self:flex-start}
+.chat-input-row{display:flex;gap:8px;padding-top:8px;border-top:1px solid var(--border);margin-top:8px}
+.chat-input{flex:1;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:13px;resize:none;height:44px;font-family:inherit}
+.form-group{margin-bottom:10px}.form-label{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:3px;display:block}
+.form-input{width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;background:var(--card);color:var(--text)}
+.form-input:focus{outline:none;border-color:var(--blue)}
+select.form-input{cursor:pointer}textarea.form-input{resize:vertical;min-height:70px;line-height:1.5}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tab{padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--card);color:var(--muted);font-weight:500}
+.tab.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.log-item{display:flex;gap:8px;font-size:12px;color:var(--muted);padding:5px 0;border-bottom:1px solid #f0f0f0}
+.log-time{min-width:40px;color:#999}
+.team-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.empty{text-align:center;padding:30px 16px;color:var(--muted)}
+.success-msg{background:#EBF5E8;color:#2E6B1A;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:10px;font-weight:500}
+.error-msg{background:#FDECEA;color:#C00000;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:10px}
+.passation-card{background:#FFF8F4;border:1px solid #FFCC99;border-radius:10px;padding:12px;margin-bottom:8px}
+.fb-badge{font-size:10px;padding:3px 8px;border-radius:10px;margin-left:8px;font-weight:600}
+.fb-ok{background:#EBF5E8;color:#2E6B1A}.fb-err{background:#FDECEA;color:#C00000}
+.doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.doc-card{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;text-align:center;transition:.2s}
+.doc-card:hover{border-color:var(--blue);transform:translateY(-1px)}
+.doc-icon{font-size:28px;margin-bottom:6px}.doc-name{font-size:12px;font-weight:600;color:var(--text)}.doc-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.pwd-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
+.pwd-client{font-weight:600;font-size:13px;color:var(--blue)}
+.pwd-field{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-top:6px;padding:4px 0;border-bottom:1px solid #f5f5f5}
+.pwd-value{font-family:monospace;background:#f5f5f5;padding:2px 6px;border-radius:4px;cursor:pointer;font-size:11px}
+.formateur-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
+.formateur-name{font-weight:600;font-size:13px}
+.formateur-meta{font-size:11px;color:var(--muted);margin-top:4px}
+.competence-tag{display:inline-block;background:#E3EEF9;color:#0D3D7C;border-radius:10px;padding:2px 8px;font-size:10px;margin:2px 2px 0 0}
+.stag-row{display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-bottom:6px;align-items:center}
+.client-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
+.session-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;border-left:4px solid var(--blue)}
+.session-card.termine{border-left-color:var(--green)}.session-card.planifie{border-left-color:var(--orange)}
+.formation-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.cat-tag{display:inline-block;border-radius:10px;padding:2px 8px;font-size:10px;font-weight:600;margin-bottom:4px}
+.cat-incendie{background:#FDECEA;color:#C00000}.cat-sst{background:#EBF5E8;color:#2E6B1A}
+.cat-elec{background:#FEF0E6;color:#884000}.cat-haccp{background:#E3EEF9;color:#0D3D7C}
+.cat-ergo{background:#EEF0FE;color:#3830A8}.cat-mgmt{background:#F0F0F0;color:#555}
+.cat-ferro{background:#E8F5E9;color:#1B5E20}.cat-caces{background:#FFF8F4;color:#884000}
+@media print{
+  .no-print{display:none!important}
+  .print-only{display:block!important}
+  body{background:white;font-family:Arial,sans-serif;font-size:11pt}
+  .doc-preview{border:none!important;padding:0!important;margin:0!important;page-break-after:always}
+  .doc-preview:last-child{page-break-after:auto}
+}
+.print-only{display:none}
+.doc-preview{background:white;border:1px solid var(--border);border-radius:8px;padding:20px;margin-top:12px;font-size:12px;line-height:1.6}
+.doc-preview h1{font-size:16px;text-align:center;margin-bottom:4px;color:var(--blue)}
+.doc-preview h2{font-size:13px;margin:12px 0 6px;color:var(--blue);border-bottom:1px solid var(--border);padding-bottom:3px}
+.doc-preview table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px}
+.doc-preview table th{background:#E8EEF7;padding:5px 8px;border:1px solid #ccc;text-align:left;font-size:11px;color:#1B3A6B}
+.doc-preview table td{padding:5px 8px;border:1px solid #ccc;font-size:11px}
+.doc-preview .signature-zone{display:flex;justify-content:space-between;margin-top:20px;gap:10px}
+.doc-preview .sig-box{border:1px solid #ccc;flex:1;min-height:80px;padding:8px;font-size:10px}
+.doc-preview .proprev-header{text-align:center;margin-bottom:16px;border-bottom:3px solid var(--blue);padding-bottom:10px}
+.doc-preview .mention{font-size:9px;color:#666;margin-top:12px;font-style:italic;text-align:center;border-top:1px solid #eee;padding-top:8px}
+.doc-preview .total-row{background:#1B3A6B;color:white;font-weight:700}
+.doc-preview .subtotal-row{background:#f5f5f5}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div style="text-align:center;padding:60px 20px">
+    <div style="font-size:32px;margin-bottom:12px">🏢</div>
+    <div style="font-size:20px;font-weight:600;color:#1B3A6B;margin-bottom:8px">PROPREV FORMATION</div>
+    <div style="font-size:13px;color:#666">Chargement...</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════════════
+const FB={apiKey:"AIzaSyCvB2k8539PAC17K--mtmC8-1oKbqqISno",authDomain:"proprev-team.firebaseapp.com",projectId:"proprev-team",storageBucket:"proprev-team.firebasestorage.app",messagingSenderId:"227070364639",appId:"1:227070364639:web:0ca3b05e838697afe1526a"};
+try{firebase.initializeApp(FB);}catch(e){}
+const db=firebase.firestore();
+
+// ═══════════════════════════════════════════
+// CONSTANTES PROPREV
+// ═══════════════════════════════════════════
+const PROPREV={
+  nom:"PROPREV FORMATION",siret:"93457276900016",nda:"11757253475 DRIEETS IDF",
+  siege:"229 Rue Saint-Honoré, 75001 Paris",salle:"10 Boulevard Louise Michel, Bât A, RDC, 91000 Évry-Courcouronnes",
+  tel:"+33 7 51 30 25 28",email:"contact@proprevformation.fr",email2:"formationproprev@gmail.com",
+  dirigeant:"Emir JELIDI",fonction:"Président",tarif:24,
+  qualiopi:"AC12222131 (ALPHA CERTIF 12) — valide 21/05/2025 au 20/05/2028",
+  tva:"Net de taxe — Exonération TVA Art. 261-4-4° du CGI",
+  iban:"[À RENSEIGNER — QONTO]",bic:"QNTOFRP1XXX"
+};
+
+const USERS={
+  emir:{id:"emir",name:"Emir",role:"Dirigeant · Admin",color:"#E87722",admin:true},
+  bilel:{id:"bilel",name:"Bilel",role:"Responsable Logistique",color:"#0D6E6E"},
+  fouad:{id:"fouad",name:"Fouad",role:"Finance & Comptabilité",color:"#5B2C8D"},
+  aya:{id:"aya",name:"Aya",role:"Secrétaire (Lun–Mer)",color:"#1D7044"},
+  basma:{id:"basma",name:"Basma",role:"Secrétaire (Mer–Ven)",color:"#1D7044"},
+  hajar:{id:"hajar",name:"Hajar",role:"Secrétaire",color:"#2E5FA3"},
+  moussa:{id:"moussa",name:"Moussa",role:"Associé / Partenaire",color:"#1B3A6B"},
+};
+
+// ═══ BASE CLIENTS ═══
+const CLIENTS=[
+  {id:"cli1",nom:"CREPES DES ARCADES",siret:"98101887200011",adresse:"142 Rue de la Piazza, 93160 Noisy-le-Grand",contact:"Maher MJEHED",fonction:"Président",email:"Crepe.maher@gmail.com",opco:"AKTO",statut:"actif"},
+  {id:"cli2",nom:"NAAN BURGER",siret:"92066434900015",adresse:"8 B Rue Louis Lenoir, 94350 Villiers-sur-Marne",contact:"Khaled BEN DAALI",fonction:"Président",email:"naaanburger@gmail.com",opco:"AKTO",statut:"actif"},
+  {id:"cli3",nom:"RESTAURANT LE BEN'S",siret:"80059208100015",adresse:"70-72 Rue Alexis Bouvier, 92700 Colombes",contact:"Lassad BEN MAAMER",fonction:"Gérant",tel:"01 47 82 96 84",email:"lebeeens@gmail.com",opco:"AKTO",statut:"actif"},
+  {id:"cli4",nom:"FIVE PIZZA (D-FAMILY)",siret:"95171180300027",adresse:"36 Rue du Noyer Grenot, 94310 Orly",contact:"Amel DOUDOU",fonction:"Présidente",opco:"AKTO",statut:"actif"},
+  {id:"cli5",nom:"KEOLIS / KCMGP",adresse:"Grand Paris Express",contact:"Via Excellence France Formations",opco:"France Travail",statut:"actif",notes:"Facturé à EFF — L16/L17/L18"},
+  {id:"cli6",nom:"EXA SIGNAL",siret:"43438762700020",adresse:"24 Rue de Bretigny ZA Bords de l'Orge, 91310 Longpont-sur-Orge",contact:"Hicham MAAMRI",fonction:"Gérant",opco:"CONSTRUCTYS",statut:"actif"},
+  {id:"cli7",nom:"MA BATIMENT",email:"ma.batiiment@gmail.com",opco:"CONSTRUCTYS",statut:"actif",notes:"Adhérent 1939036 — rattachement en cours"},
+  {id:"cli8",nom:"STARK TRANSPORT",email:"Starktransport77@gmail.com",opco:"MOBILITE",statut:"actif"},
+  {id:"cli9",nom:"VACANCES ETHIQUES",adresse:"1 Avenue Dilecta, 77270 Villeparisis",contact:"Lydia BARBE",opco:"OPCO Atlas",statut:"actif",notes:"IDCC 1909 — 1 salariée"},
+  {id:"cli10",nom:"AGIR+",email:"secretariatagirplus@gmail.com",opco:"UNIFORMATION",statut:"actif",notes:"ICOM 30016779"},
+  {id:"cli11",nom:"CHICKEN PALACE",email:"amine.original94000@gmail.com",opco:"AKTO",statut:"actif"},
+  {id:"cli12",nom:"CHEZ AGNES",email:"Agnes93000@gmail.com",opco:"AKTO",statut:"actif"},
+  {id:"cli13",nom:"BADIS EXPRESS",email:"smaali.sofiane99@gmail.com",opco:"MOBILITE",statut:"inactif",notes:"SIRET inactif — dossier rejeté"},
+  {id:"cli14",nom:"RESTAURANT LE TOMBOUCTOU",adresse:"Meaux (77)",contact:"Sidie CISSE",email:"doumadouma99@hotmail.com",statut:"prospect"},
+  {id:"cli15",nom:"FORMA2S",siret:"88496772000027",adresse:"18 Place de Verdun, 59650 Villeneuve d'Ascq",contact:"Abdelkhattab ALLALI",email:"contact@forma2s.fr",statut:"partenaire",notes:"PROPREV sous-traitant pour eux"},
+  {id:"cli16",nom:"EXCELLENCE FRANCE FORMATIONS",siret:"91844126200048",nda:"93830698583",adresse:"1 Rue de Rome, 93110 Rosny-sous-Bois",contact:"Direction",email:"direction@excellencefranceformations.com",statut:"partenaire",notes:"Donneur d'ordre KEOLIS"},
+];
+
+// ═══ BASE FORMATEURS ═══
+const FORMATEURS_DB=[
+  {nom:"Emir JELIDI",statut:"Dirigeant / Formateur interne",specialites:["Prévention des risques","Sécurité incendie","SSIAP","Management","SST","EPI","Safety Day"],secteurs:["Tous secteurs"],tarif:"Interne",contact:"formationproprev@gmail.com",siret:"88151303000018",nda:"11931056593",certifs:"SSIAP 3 (en cours), SST, EPI"},
+  {nom:"Amel Dridi",statut:"Formatrice vacataire",specialites:["HACCP","Gestes & Postures","SST","Sauveteur Secouriste","Commerce","Management"],secteurs:["Restauration","Hôtellerie","Commerce"],tarif:"300€/j",contact:"À renseigner",certifs:"SST, HACCP"},
+  {nom:"Julien Aubert",statut:"Formateur vacataire",specialites:["Gestes & Postures","Habilitation Électrique","Prévention TMS"],secteurs:["BTP","Logistique","Industrie"],tarif:"24€/h",contact:"À renseigner",certifs:"Habilitation électrique"},
+  {nom:"Ngoc LY",statut:"Sous-traitante",specialites:["SST"],secteurs:["Tous secteurs"],tarif:"300€/j",contact:"contact@sst-prevention.fr",siret:"81064039100027",nda:"11941235694",certifs:"SST INRS"},
+  {nom:"Christine SUBERVILLE",statut:"Indépendante",specialites:["SST","PRAP-IBC","RPS","Gestes & Postures"],secteurs:["Tous secteurs"],tarif:"300€/j",contact:"À renseigner",certifs:"SST, PRAP"},
+  {nom:"Frédéric BORIE",statut:"Indépendant",specialites:["SST","EPI","TFP APS","Habilitation Électrique"],secteurs:["Tous secteurs"],tarif:"250-300€/j",contact:"À renseigner",siret:"92457319900016",nda:"11931066293",certifs:"SST, Hab. Élec."},
+  {nom:"Laura VELAZQUEZ PEREZ",statut:"Valkysecurite",specialites:["SSIAP 1","SSIAP 2","SSIAP 3","SST","EPI","TFP APS","PSE 1","PSE 2"],secteurs:["Sécurité incendie"],tarif:"À négocier",contact:"À renseigner",siret:"94247275400020",certifs:"SSIAP 1/2/3, SST"},
+  {nom:"Laura DAMIM",statut:"Indépendante",specialites:["Gestes & Postures","Gestion conflits","Prévention risques","Travail en hauteur"],secteurs:["Tous secteurs"],tarif:"À négocier",contact:"damimlaura@gmail.com",nda:"11922871592",certifs:"GP, Prévention"},
+  {nom:"Jean-Michel DJEDIS",statut:"Indépendant",specialites:["SST","PSC","GQS","H0B0","EPI"],secteurs:["Tous secteurs"],tarif:"À négocier",contact:"djedisjm@gmail.com",certifs:"SST, H0B0"},
+  {nom:"Eric VERHOEST",statut:"Indépendant",specialites:["CACES R489","CACES R485","CACES R486","PRAP-IBC"],secteurs:["Logistique","BTP"],tarif:"À négocier",contact:"eric_verhoest@orange.fr",certifs:"CACES"},
+  {nom:"Abdel HAMACHE",statut:"Indépendant",specialites:["SST","GP","Bio-nettoyage","H0B0","Incendie","Safety Day"],secteurs:["Tous secteurs"],tarif:"À négocier",contact:"hamache.abdel@outlook.fr",certifs:"SST, Incendie"},
+  {nom:"Thomas DOS SANTOS",statut:"Formateur interne",specialites:["HACCP","BPH","Cuisine"],secteurs:["Restauration"],tarif:"Interne",contact:"contact@mediterraneatraiteur.fr",certifs:"HACCP"},
+  {nom:"Mouhssin ABIDA",statut:"FMA Formation",specialites:["Sécurité ferroviaire","TES M"],secteurs:["Ferroviaire"],tarif:"À négocier",contact:"Via FMA",certifs:"TES M"},
+  {nom:"Fouad BOHLI",statut:"E-SPHERIA",specialites:["TES M","Sécurité ferroviaire"],secteurs:["Ferroviaire"],tarif:"À négocier",contact:"contact@e-spheria-formation.fr",certifs:"TES M"},
+  {nom:"Amine ABDELLI",statut:"Indépendant",specialites:["Conducteurs ferroviaires","TES M","POEI"],secteurs:["Ferroviaire"],tarif:"À négocier",contact:"À renseigner",certifs:"TES M"},
+];
+
+// ═══ CATALOGUE FORMATIONS ═══
+const FORMATIONS_CAT=[
+  {id:"F001",cat:"sst",label:"SST Initial",duree:14,prixIntra:1400,prixInter:360,certifiant:true},
+  {id:"F002",cat:"sst",label:"MAC SST (Recyclage)",duree:7,prixIntra:900,prixInter:200,certifiant:true},
+  {id:"F003",cat:"sst",label:"PSC1 / GQS",duree:7,prixIntra:1200,certifiant:true},
+  {id:"F010",cat:"incendie",label:"EPI (Équipier Première Intervention)",duree:3.5,prixIntra:1500,certifiant:false},
+  {id:"F011",cat:"incendie",label:"Charge d'évacuation",duree:2,prixIntra:1200,certifiant:false},
+  {id:"F012",cat:"incendie",label:"ESI 7h",duree:7,prixIntra:2500,certifiant:false},
+  {id:"F013",cat:"incendie",label:"ESI 14h",duree:14,prixIntra:4800,certifiant:false},
+  {id:"F014",cat:"incendie",label:"SSIAP 1 Initial",duree:70,prixInter:1709,certifiant:true},
+  {id:"F015",cat:"incendie",label:"SSIAP 2 Initial",duree:56,prixInter:1900,certifiant:true},
+  {id:"F016",cat:"incendie",label:"ARI",duree:7,certifiant:true},
+  {id:"F020",cat:"elec",label:"H0B0",duree:7,prixIntra:1800,certifiant:true},
+  {id:"F021",cat:"elec",label:"BSBE Initial",duree:14,prixIntra:2800,certifiant:true},
+  {id:"F022",cat:"elec",label:"BR Initiale",duree:21,prixIntra:4200,certifiant:true},
+  {id:"F023",cat:"elec",label:"BC Initiale",duree:21,prixIntra:4200,certifiant:true},
+  {id:"F024",cat:"elec",label:"Hab. Élec. e-learning",duree:7,certifiant:true},
+  {id:"F030",cat:"ergo",label:"Gestes & Postures / TMS",duree:7,prixIntra:2000,certifiant:false},
+  {id:"F031",cat:"ergo",label:"Ergonomie bureau",duree:3.5,prixIntra:1200,certifiant:false},
+  {id:"F032",cat:"ergo",label:"PRAP IBC Initial",duree:14,certifiant:true},
+  {id:"F033",cat:"ergo",label:"PMR — Personnes handicapées",duree:7,certifiant:false},
+  {id:"F040",cat:"haccp",label:"HACCP Initial",duree:14,prixIntra:1400,prixInter:350,certifiant:true},
+  {id:"F041",cat:"haccp",label:"Recyclage HACCP",duree:7,certifiant:true},
+  {id:"F042",cat:"haccp",label:"Bio-nettoyage hospitalier",duree:7,certifiant:false},
+  {id:"F050",cat:"mgmt",label:"Référent harcèlement CSE",duree:7,prixIntra:1800,certifiant:false},
+  {id:"F051",cat:"mgmt",label:"Manager prévention",duree:10.5,prixIntra:2500,certifiant:false},
+  {id:"F052",cat:"mgmt",label:"DUERP",duree:7,prixIntra:2100,certifiant:false},
+  {id:"F053",cat:"mgmt",label:"CSE SSCT Initial",duree:35,prixIntra:7500,certifiant:false},
+  {id:"F054",cat:"mgmt",label:"RPS / Burn-out / Harcèlement",duree:7,prixIntra:1800,certifiant:false},
+  {id:"F060",cat:"caces",label:"CACES Gerbeur R485",duree:7,prixInter:460,certifiant:true},
+  {id:"F061",cat:"caces",label:"CACES Chariots R489",duree:28,prixInter:960,certifiant:true},
+  {id:"F070",cat:"ferro",label:"TES M Initial",duree:28,certifiant:true},
+  {id:"F071",cat:"ferro",label:"Recyclage TES M",duree:14,certifiant:true},
+  {id:"F072",cat:"ferro",label:"POEI Conducteur Tram-Train",duree:450,certifiant:true},
+  {id:"F080",cat:"incendie",label:"EPI-X SÉCU-STATION (KEOLIS)",duree:35,certifiant:false,notes:"Programme spécifique KEOLIS"},
+];
+
+// ═══ SESSIONS ═══
+let SESSIONS_DATA=[
+  {id:"s1",formation:"EPI-X SÉCU-STATION",client:"KEOLIS / KCMGP",ref:"KCMGP-L18",dateDebut:"2026-03-10",dateFin:"2026-03-14",duree:35,nbStag:8,formateur:"Emir JELIDI",lieu:"Salle PROPREV — Évry",montantHT:6720,opco:"France Travail",statut:"termine",attestations:true},
+  {id:"s2",formation:"HACCP + GP + Hab. Élec.",client:"CREPES DES ARCADES",dateDebut:"2025-11-10",dateFin:"2025-11-14",duree:35,nbStag:6,formateur:"Emir JELIDI",lieu:"Salle PROPREV — Évry",montantHT:3150,opco:"AKTO",statut:"termine",attestations:true},
+  {id:"s3",formation:"SST + HACCP + EPI + GP + Hab. Élec.",client:"NAAN BURGER",dateDebut:"2025-10-07",dateFin:"2025-10-11",nbStag:5,montantHT:3412,opco:"AKTO",statut:"termine",attestations:true},
+  {id:"s4",formation:"HACCP",client:"FIVE PIZZA",dateDebut:"2026-02-15",dateFin:"2026-02-16",duree:14,nbStag:8,formateur:"Amel Dridi",montantHT:2800,opco:"AKTO",statut:"termine",attestations:true},
+  {id:"s5",formation:"5 formations Constructys",client:"EXA SIGNAL",dateDebut:"2026-04-15",nbStag:8,formateur:"Emir JELIDI",lieu:"Salle PROPREV — Évry",opco:"CONSTRUCTYS",statut:"planifie",attestations:false},
+];
+
+// ═══ PASSWORDS OPCO ═══
+const OPCO_PASSWORDS=[
+  {client:"BADIS EXPRESS",opco:"Mobilité",login:"smaali.sofiane99@gmail.com",password:"Formation94!",notes:"SIRET inactif — dossier rejeté"},
+  {client:"CREPERIE DES ARCADES",opco:"AKTO",login:"Crepe.maher@gmail.com",password:"Formation94!",notes:""},
+  {client:"FIVE PIZZA",opco:"AKTO",login:"Amel",password:"",notes:"Géré par Amel Dridi"},
+  {client:"MA BATIMENT",opco:"Constructys",login:"ma.batiiment@gmail.com",password:"Formation94!",notes:"Adhérent 1939036 — rattachement en cours"},
+  {client:"AGIR+",opco:"Uniformation",login:"secretariatagirplus@gmail.com",password:"",notes:"ICOM 30016779 — activation en attente"},
+  {client:"CHICKEN PALACE",opco:"AKTO",login:"amine.original94000@gmail.com",password:"Formation94!",notes:""},
+  {client:"CHEZ AGNES",opco:"AKTO",login:"Agnes93000@gmail.com",password:"Formation94!",notes:""},
+  {client:"STARK TRANSPORT",opco:"Mobilité",login:"Starktransport77@gmail.com",password:"Formation94!",notes:""},
+  {client:"NAAN BURGER",opco:"AKTO",login:"naaanburger@gmail.com",password:"Formation94!",notes:""},
+  {client:"LE BEN'S",opco:"AKTO",login:"lebeeens@gmail.com",password:"Formation94!",notes:""},
+  {client:"VACANCES ETHIQUES",opco:"OPCO Atlas",login:"À créer",password:"",notes:"IDCC 1909 — 1 salarié"},
+  {client:"EXA SIGNAL",opco:"CONSTRUCTYS",login:"À renseigner",password:"",notes:"5 formations avr-mai 2026"},
+];
+
+// ═══ TÂCHES ═══
+const INIT_TASKS=[
+  {id:"t1",title:"Récupérer émargements FIVE PIZZA (mars 2026)",category:"PROPREV",assignedTo:"aya",priority:"urgent",status:"todo",deadline:"07/04/2026",client:"FIVE PIZZA",notes:"Bloque 4 200€ OPCO AKTO",procedure:"1. Appeler Amel Dridi\n2. Demander feuilles émargement sessions 16-19/03\n3. Scanner et transmettre à Emir\n4. Déposer dossier AKTO dès réception"},
+  {id:"t2",title:"Envoyer convocations KEOLIS session 03/04",category:"PROPREV",assignedTo:"aya",priority:"urgent",status:"todo",deadline:"03/04/2026",client:"KEOLIS",notes:"Session imminente",procedure:"1. Aller dans Documents → Convocation\n2. Renseigner stagiaires, formation, date, lieu\n3. Envoyer par email au contact KEOLIS\n4. Confirmer réception"},
+  {id:"t3",title:"Identifier OPCO KEOLIS + préparer dossier",category:"PROPREV",assignedTo:"emir",priority:"urgent",status:"todo",deadline:"10/04/2026",client:"KEOLIS",notes:"3 sessions sans financement — facturé à EFF",procedure:"1. Contacter KEOLIS\n2. Identifier leur OPCO\n3. Vérifier conditions Excellence France Formation\n4. Monter le dossier"},
+  {id:"t4",title:"Créer formulaire satisfaction stagiaires",category:"PROPREV",assignedTo:"aya",priority:"urgent",status:"todo",deadline:"30/04/2026",client:"Qualiopi ind.14",notes:"Non-conformité",procedure:"1. Créer Google Form\n2. Questions: contenu, formateur, organisation, note /10\n3. Partager lien à Emir pour validation"},
+  {id:"t5",title:"Créer registre des réclamations",category:"PROPREV",assignedTo:"emir",priority:"urgent",status:"todo",deadline:"30/04/2026",client:"Qualiopi ind.22",notes:"Non-conformité critique",procedure:"1. Rédiger procédure réclamation\n2. Créer registre dans Documents\n3. Définir responsable"},
+  {id:"t6",title:"Préparer 5 attestations CREPERIE DES ARCADES",category:"PROPREV",assignedTo:"basma",priority:"important",status:"todo",deadline:"10/04/2026",client:"CREPERIE DES ARCADES",notes:"5 formations mars 2026 — émargements OK",procedure:"1. Aller dans Documents → Attestation\n2. Sélectionner CREPES DES ARCADES\n3. Ajouter les 5 stagiaires\n4. Générer toutes les attestations\n5. Envoyer à Maher (Crepe.maher@gmail.com)"},
+  {id:"t7",title:"Relancer Constructys — MA BATIMENT",category:"PROPREV",assignedTo:"aya",priority:"important",status:"todo",deadline:"08/04/2026",client:"MA BATIMENT",notes:"Adhérent 1939036",procedure:"1. Appeler Constructys\n2. Référence adhérent: 1939036\n3. Demander état rattachement\n4. Email de relance si pas de réponse"},
+  {id:"t8",title:"Relancer Uniformation — AGIR+",category:"PROPREV",assignedTo:"basma",priority:"important",status:"todo",deadline:"08/04/2026",client:"AGIR+",notes:"ICOM 30016779",procedure:"1. Email à unif93@uniformation.fr\n2. CC secretariatagirplus@gmail.com\n3. Relancer après 48h"},
+  {id:"t9",title:"Préparer logistique EXA SIGNAL",category:"PROPREV",assignedTo:"bilel",priority:"important",status:"todo",deadline:"10/04/2026",client:"EXA SIGNAL",notes:"Dès que dates fixées par Emir",procedure:"1. Attendre confirmation dates\n2. Réserver salle Évry\n3. Préparer matériel\n4. Imprimer émargements depuis Documents\n5. Vérifier café/eau"},
+  {id:"t10",title:"Planifier formation VACANCES ETHIQUES",category:"PROPREV",assignedTo:"hajar",priority:"normal",status:"todo",deadline:"15/04/2026",client:"VACANCES ETHIQUES",notes:"OPCO Atlas — 1 salariée Lydia BARBE",procedure:"1. Contacter Lydia BARBE\n2. Proposer SST + EPI + Hab Élec\n3. Générer convention dans Documents\n4. Ouvrir dossier OPCO Atlas"},
+  {id:"t11",title:"Éditer certificats STARK TRANSPORT",category:"PROPREV",assignedTo:"aya",priority:"normal",status:"todo",deadline:"15/04/2026",client:"STARK TRANSPORT",notes:"Habilitation élec + GP nov 2025",procedure:"1. Documents → Attestation\n2. Sélectionner STARK TRANSPORT\n3. Remplir: Zakaria et Walid ZEGGAI\n4. Envoyer à Starktransport77@gmail.com"},
+  {id:"t12",title:"Intégration Hajar",category:"PROPREV",assignedTo:"emir",priority:"important",status:"todo",deadline:"07/04/2026",client:"Interne",notes:"Nouveau membre équipe",procedure:"1. Présenter l'application\n2. Montrer onglet Documents\n3. Expliquer les process"},
+];
+
+const INIT_ALERTS=[
+  {id:"a1",level:"critical",client:"FIVE PIZZA",problem:"Émargements manquants",detail:"Bloque 4 200€ OPCO AKTO",assignedTo:"aya",deadline:"07/04/2026",status:"todo"},
+  {id:"a2",level:"critical",client:"KEOLIS",problem:"OPCO non identifié",detail:"3 sessions sans financement",assignedTo:"emir",deadline:"10/04/2026",status:"todo"},
+  {id:"a3",level:"critical",client:"KEOLIS",problem:"Convocations manquantes",detail:"Session 03/04 imminente",assignedTo:"aya",deadline:"03/04/2026",status:"todo"},
+  {id:"a4",level:"important",client:"Qualiopi ind.14",problem:"Formulaire satisfaction absent",detail:"Non-conformité",assignedTo:"aya",deadline:"30/04/2026",status:"todo"},
+  {id:"a5",level:"important",client:"Qualiopi ind.22",problem:"Registre réclamations absent",detail:"Non-conformité critique",assignedTo:"emir",deadline:"30/04/2026",status:"todo"},
+  {id:"a6",level:"important",client:"CREPERIE DES ARCADES",problem:"5 attestations à éditer",detail:"Émargements OK",assignedTo:"basma",deadline:"10/04/2026",status:"todo"},
+];
+
+const SYS={
+  emir:`Tu es le bras droit stratégique d'Emir JELIDI, dirigeant de PROPREV FORMATION (SAS, SIRET 93457276900016, NDA 11757253475). Certifié Qualiopi AC12222131. Clients actifs: EXA SIGNAL (CONSTRUCTYS), KEOLIS (France Travail via EFF), FIVE PIZZA (AKTO), CREPERIE DES ARCADES (AKTO), NAAN BURGER (AKTO), LE BEN'S (AKTO), STARK TRANSPORT (MOBILITE), VACANCES ETHIQUES (Atlas), MA BATIMENT (CONSTRUCTYS), AGIR+ (UNIFORMATION). Tarif: 24€ HT/h/stagiaire. Exonéré TVA Art.261-4-4° CGI. Formateurs: Amel Dridi (300€/j), Julien Aubert (24€/h), 15 autres. Bail: 10 Bd Louise Michel, 91000 Évry, 1750€/mois. Réponds en français, sois direct et pratique.`,
+  bilel:`Tu es l'assistant de Bilel, responsable logistique de PROPREV FORMATION. Aide-le avec: salles (10 Bd Louise Michel Évry), matériel, logistique sessions. Réponses courtes et pratiques en français.`,
+  fouad:`Tu es l'assistant de Fouad, responsable finance de PROPREV. Aide-le avec: factures OPCO (AKTO, CONSTRUCTYS, MOBILITE, ATLAS, UNIFORMATION, France Travail), encaissements, honoraires formateurs. Règle: payer formateur APRÈS encaissement OPCO. Réponds en français.`,
+  aya:`Tu es l'assistante d'Aya, secrétaire de PROPREV (lun-mer). Aide-la avec: convocations, dossiers OPCO, attestations, recherche formateurs. Dossier formateur requis: NDA + attestation vigilance + RC PRO + CV + RIB. Réponds en français.`,
+  basma:`Tu es l'assistante de Basma, secrétaire de PROPREV (mer-ven). Même rôle qu'Aya. Consulte le tableau de passation en arrivant. Réponds en français.`,
+  hajar:`Tu es l'assistante de Hajar, nouveau membre de PROPREV. Sois pédagogue. Explique chaque procédure étape par étape en français.`,
+  moussa:`Tu es l'assistant de Moussa, associé d'Emir chez PROPREV FORMATION. Aide-le avec la vision stratégique et le développement commercial. Réponds en français.`,
+};
+
+// ═══ STATE ═══
+let currentUser=null,currentTab="dashboard",currentDoc=null;
+let tasks=[...INIT_TASKS],alerts=[...INIT_ALERTS],activityLog=[],chatHistory=[];
+let taskFilter="my",taskCat="all",dispatchMsg="",showPwd={};
+let facNum=1001,catFilter="all";
+let docStagiaires=[{nom:"",prenom:""}];
+let sessions=[...SESSIONS_DATA];
+
+// ═══ DB ═══
+async function initDB(){
+  try{const s=await db.collection("tasks").limit(1).get();if(s.empty){const b=db.batch();INIT_TASKS.forEach(t=>b.set(db.collection("tasks").doc(t.id),t));INIT_ALERTS.forEach(a=>b.set(db.collection("alerts").doc(a.id),a));await b.commit();}}catch(e){}
+}
+function subscribeDB(){
+  db.collection("tasks").onSnapshot(s=>{if(!s.empty){tasks=s.docs.map(d=>({...d.data(),id:d.id}));render();}},e=>{});
+  db.collection("alerts").onSnapshot(s=>{if(!s.empty){alerts=s.docs.map(d=>({...d.data(),id:d.id}));render();}},e=>{});
+  db.collection("activity_log").orderBy("createdAt","desc").limit(20).onSnapshot(s=>{if(!s.empty)activityLog=s.docs.map(d=>d.data());},e=>{});
+}
+async function updateTask(id,data){tasks=tasks.map(t=>t.id===id?{...t,...data}:t);try{await db.collection("tasks").doc(id).update(data);}catch(e){}render();}
+async function addTaskToDB(task){const id="t"+Date.now();const t={...task,id,createdAt:new Date().toISOString(),status:"todo"};tasks=[t,...tasks];try{await db.collection("tasks").doc(id).set(t);}catch(e){}render();}
+async function updateAlert(id,data){alerts=alerts.map(a=>a.id===id?{...a,...data}:a);try{await db.collection("alerts").doc(id).update(data);}catch(e){}render();}
+async function addLog(msg){const e={time:new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}),msg,user:currentUser?.name||"Système"};activityLog=[e,...activityLog.slice(0,49)];try{await db.collection("activity_log").add({...e,createdAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(ex){}}
+
+// ═══ CLAUDE API ═══
+async function callClaude(msg){
+  const sys=SYS[currentUser?.id]||SYS.aya;
+  const msgs=[...chatHistory,{role:"user",content:msg}];
+  const r=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:sys,messages:msgs})});
+  const d=await r.json();
+  return d.content?.[0]?.text||"Erreur.";
+}
+
+// ═══ HELPERS ═══
+const PO={urgent:0,important:1,normal:2};
+function initials(n){return n.slice(0,2).toUpperCase();}
+function av(u,s=38){return`<div style="width:${s}px;height:${s}px;border-radius:50%;background:${u.color};display:flex;align-items:center;justify-content:center;color:#fff;font-size:${s>32?13:11}px;font-weight:600;flex-shrink:0">${initials(u.name)}</div>`;}
+function pBadge(p){return`<span class="badge b-${p}">${{urgent:"🔴 Urgent",important:"🟠 Important",normal:"🟢 Normal"}[p]||p}</span>`;}
+function sBadge(s){return`<span class="badge b-${s}">${{todo:"À faire",inprogress:"En cours",done:"Terminé",blocked:"Bloqué"}[s]||s}</span>`;}
+function today(){return new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"});}
+function todayFull(){return new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"long",year:"numeric"});}
+function numFac(){return`FAC-${new Date().getFullYear()}-${String(facNum).padStart(4,"0")}`;}
+function getClient(id){return CLIENTS.find(c=>c.id===id)||null;}
+function clientSelector(selectId,onchange=""){
+  return`<select class="form-input" id="${selectId}" onchange="${onchange}">
+    <option value="">-- Sélectionner un client --</option>
+    ${CLIENTS.filter(c=>c.statut==="actif"||c.statut==="prospect").map(c=>`<option value="${c.id}">${c.nom}${c.opco?` (${c.opco})`:""}</option>`).join("")}
+    <option value="autre">Autre / Saisie manuelle</option>
+  </select>`;
+}
+function formateurSelector(selectId){
+  return`<select class="form-input" id="${selectId}">
+    <option value="">-- Sélectionner un formateur --</option>
+    ${FORMATEURS_DB.map(f=>`<option value="${f.nom}">${f.nom} — ${f.tarif}</option>`).join("")}
+  </select>`;
+}
+function formationSelector(selectId,onchange=""){
+  const cats={incendie:"🔥 Sécurité Incendie",sst:"🩺 Secourisme / SST",elec:"⚡ Habilitation Électrique",ergo:"💪 Ergonomie / PRAP",haccp:"🍽️ HACCP / Hygiène",mgmt:"📊 Management / Prévention",caces:"🚜 CACES",ferro:"🚂 Ferroviaire"};
+  let html=`<select class="form-input" id="${selectId}" onchange="${onchange}"><option value="">-- Sélectionner une formation --</option>`;
+  Object.entries(cats).forEach(([k,v])=>{
+    html+=`<optgroup label="${v}">`;
+    FORMATIONS_CAT.filter(f=>f.cat===k).forEach(f=>{html+=`<option value="${f.id}" data-duree="${f.duree||0}">${f.label}${f.duree?` (${f.duree}h)`:""}</option>`;});
+    html+=`</optgroup>`;
+  });
+  html+=`<option value="autre">Autre (saisie manuelle)</option></select>`;
+  return html;
+}
+
+function fillClientFields(selectId){
+  const val=document.getElementById(selectId)?.value;
+  if(!val||val==="autre")return;
+  const c=getClient(val);
+  if(!c)return;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+  set("d-client",c.nom);set("d-siret",c.siret||"");set("d-contact",c.contact||"");
+  set("d-fonction",c.fonction||"");set("d-adresse",c.adresse||"");
+  set("d-opco",c.opco||"");
+}
+
+function fillFormationFields(selectId){
+  const val=document.getElementById(selectId)?.value;
+  if(!val||val==="autre")return;
+  const f=FORMATIONS_CAT.find(x=>x.id===val);
+  if(!f)return;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined)el.value=v;};
+  set("d-formation",f.label);
+  if(f.duree)set("d-duree",f.duree);
+  if(f.prixIntra)set("d-tarif",Math.round(f.prixIntra/f.duree)||24);
+  if(f.prixInter)set("d-tarif-inter",f.prixInter);
+}
+
+// ═══ DOCUMENTS ═══
+function getDocForm(type){
+  const clientBlock=`
+    <div class="form-group"><label class="form-label">Client (sélection rapide)</label>
+      ${clientSelector("d-client-select","fillClientFields('d-client-select')")}
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Client / Entreprise *</label><input class="form-input" id="d-client" placeholder="Ex: FIVE PIZZA"></div>
+      <div class="form-group"><label class="form-label">SIRET client</label><input class="form-input" id="d-siret" placeholder="12345678900000"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Interlocuteur *</label><input class="form-input" id="d-contact" placeholder="Prénom Nom"></div>
+      <div class="form-group"><label class="form-label">Fonction</label><input class="form-input" id="d-fonction" placeholder="Gérant"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Adresse client</label><input class="form-input" id="d-adresse" placeholder="1 Rue de la Paix, 75001 Paris"></div>`;
+
+  const formationBlock=`
+    <div class="form-group"><label class="form-label">Formation (sélection catalogue)</label>
+      ${formationSelector("d-formation-select","fillFormationFields('d-formation-select')")}
+    </div>
+    <div class="form-group"><label class="form-label">Intitulé exact *</label><input class="form-input" id="d-formation" placeholder="Ex: HACCP, Gestes & Postures, SST..."></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Date(s) session *</label><input class="form-input" id="d-date" placeholder="Ex: 15 et 16 avril 2026"></div>
+      <div class="form-group"><label class="form-label">Durée (heures) *</label><input class="form-input" id="d-duree" type="number" placeholder="14" value="14"></div>
+    </div>`;
+
+  if(type==="convention")return`
+    <h3 style="margin-bottom:12px">📋 Convention de Formation</h3>
+    ${clientBlock}${formationBlock}
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Lieu</label><select class="form-input" id="d-lieu">
+        <option value="evry">Salle PROPREV — Évry</option><option value="client">Chez le client</option>
+      </select></div>
+      <div class="form-group"><label class="form-label">Nb stagiaires *</label><input class="form-input" id="d-nbstag" type="number" value="1"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tarif HT/h/stag (€)</label><input class="form-input" id="d-tarif" type="number" value="24"></div>
+      <div class="form-group"><label class="form-label">OPCO / Financement</label><input class="form-input" id="d-opco" placeholder="Ex: AKTO, CONSTRUCTYS..."></div>
+    </div>
+    <div class="form-group"><label class="form-label">Objectifs pédagogiques</label><textarea class="form-input" id="d-objectifs" placeholder="À l'issue de la formation, le stagiaire sera capable de..."></textarea></div>
+    <div class="form-group"><label class="form-label">N° convention</label><input class="form-input" id="d-numconv" placeholder="Auto"></div>
+    <button class="btn btn-primary btn-block" onclick="genDoc('convention')">Générer la convention →</button>`;
+
+  if(type==="emargement")return`
+    <h3 style="margin-bottom:12px">✍️ Feuille d'Émargement</h3>
+    ${clientBlock}${formationBlock}
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Formateur *</label>${formateurSelector("d-formateur-select")}</div>
+      <div class="form-group"><label class="form-label">Nb jours</label><select class="form-input" id="d-nbjours">
+        ${[1,2,3,4,5].map(n=>`<option value="${n}" ${n===2?"selected":""}>${n} jour(s)</option>`).join("")}
+      </select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Heure début</label><input class="form-input" id="d-hdebut" value="09h00"></div>
+      <div class="form-group"><label class="form-label">Heure fin</label><input class="form-input" id="d-hfin" value="17h00"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Stagiaires (un par ligne)</label>
+      <textarea class="form-input" id="d-stagiaires" rows="8" placeholder="Jean DUPONT&#10;Marie MARTIN&#10;Ahmed SIDI&#10;..."></textarea></div>
+    <button class="btn btn-primary btn-block" onclick="genDoc('emargement')">Générer la feuille →</button>`;
+
+  if(type==="attestation")return`
+    <h3 style="margin-bottom:12px">🏆 Attestations de Formation</h3>
+    <div style="background:#E3EEF9;border-radius:8px;padding:8px;font-size:11px;color:#0D3D7C;margin-bottom:10px">
+      💡 Renseigne plusieurs stagiaires pour générer toutes les attestations d'un coup (impression multi-pages)
+    </div>
+    ${clientBlock}${formationBlock}
+    <div class="form-group"><label class="form-label">Résultat</label><select class="form-input" id="d-resultat">
+      <option value="A satisfait aux objectifs de la formation">A satisfait aux objectifs de la formation</option>
+      <option value="A participé à la formation">A participé à la formation</option>
+      <option value="A validé les compétences visées">A validé les compétences visées</option>
+    </select></div>
+    <div class="section-title">Stagiaires</div>
+    <div id="stag-list">${renderStagiaireRows()}</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button class="btn btn-sm" onclick="addStagRow()">+ Ajouter stagiaire</button>
+      <button class="btn btn-sm" onclick="importStagCSV()">📋 Coller liste</button>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="genDoc('attestation')">Générer ${docStagiaires.filter(s=>s.nom).length||1} attestation(s) →</button>`;
+
+  if(type==="facture")return`
+    <h3 style="margin-bottom:12px">💶 Facture</h3>
+    ${clientBlock}${formationBlock}
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nb stagiaires *</label><input class="form-input" id="d-nbstag" type="number" value="1"></div>
+      <div class="form-group"><label class="form-label">Tarif HT/h/stag (€)</label><input class="form-input" id="d-tarif" type="number" value="24"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">N° facture</label><input class="form-input" id="d-numfac" value="${numFac()}"></div>
+      <div class="form-group"><label class="form-label">Facturé à (si différent)</label><input class="form-input" id="d-factured-a" placeholder="Ex: Excellence France Formation"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Référence OPCO</label><input class="form-input" id="d-refopco" placeholder="Ex: 2602AF029094"></div>
+      <div class="form-group"><label class="form-label">OPCO</label><input class="form-input" id="d-opco" placeholder="AKTO, CONSTRUCTYS..."></div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="genDoc('facture')">Générer la facture →</button>`;
+
+  if(type==="devis")return`
+    <h3 style="margin-bottom:12px">📊 Devis</h3>
+    ${clientBlock}${formationBlock}
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nb stagiaires *</label><input class="form-input" id="d-nbstag" type="number" value="1"></div>
+      <div class="form-group"><label class="form-label">Tarif HT/h/stag (€)</label><input class="form-input" id="d-tarif" type="number" value="24"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">N° devis</label><input class="form-input" id="d-numdevis" value="DEV-${new Date().getFullYear()}-${String(facNum).padStart(4,'0')}"></div>
+      <div class="form-group"><label class="form-label">Validité</label><input class="form-input" id="d-validite" value="30 jours"></div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="genDoc('devis')">Générer le devis →</button>`;
+
+  if(type==="soustraitance")return`
+    <h3 style="margin-bottom:12px">📝 Contrat de Sous-Traitance</h3>
+    <div class="form-group"><label class="form-label">Formateur (sélection)</label>${formateurSelector("d-form-select")}</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nom *</label><input class="form-input" id="d-form-nom" placeholder="DRIDI"></div>
+      <div class="form-group"><label class="form-label">Prénom *</label><input class="form-input" id="d-form-prenom" placeholder="Amel"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">SIRET formateur</label><input class="form-input" id="d-form-siret" placeholder="12345678900000"></div>
+      <div class="form-group"><label class="form-label">NDA formateur</label><input class="form-input" id="d-form-nda" placeholder="11XXXXXXXXXX"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Adresse formateur</label><input class="form-input" id="d-form-adresse" placeholder="1 Rue..."></div>
+    ${formationBlock}
+    <div class="form-group"><label class="form-label">Client final *</label><input class="form-input" id="d-client" placeholder="FIVE PIZZA"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tarif HT/heure (€)</label><input class="form-input" id="d-tarif" type="number" value="300"></div>
+      <div class="form-group"><label class="form-label">Nb heures</label><input class="form-input" id="d-duree-st" type="number" value="14"></div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="genDoc('soustraitance')">Générer le contrat →</button>`;
+
+  if(type==="cotraitance")return`
+    <h3 style="margin-bottom:12px">🤝 Contrat de Co-Traitance</h3>
+    <div style="background:#FEF0E6;border-radius:8px;padding:8px;font-size:11px;color:#884000;margin-bottom:10px">
+      ⚠️ Clauses automatiques : Durée 7 ans • Accord écrit obligatoire • Pénalité 5 000€/manquement + 50% surcharge
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Co-traitant — Raison sociale *</label><input class="form-input" id="d-co-nom" placeholder="SI GROUPE"></div>
+      <div class="form-group"><label class="form-label">SIRET co-traitant *</label><input class="form-input" id="d-co-siret" placeholder="50905949900038"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">NDA co-traitant</label><input class="form-input" id="d-co-nda" placeholder="11XXXXXXXXXX"></div>
+      <div class="form-group"><label class="form-label">Adresse</label><input class="form-input" id="d-co-adresse" placeholder="6 Rue du Bois Sauvage..."></div>
+    </div>
+    <div class="form-group"><label class="form-label">Représentant co-traitant *</label><input class="form-input" id="d-co-contact" placeholder="Prénom NOM, Gérant"></div>
+    <div class="form-group"><label class="form-label">Objet du contrat *</label><input class="form-input" id="d-formation" placeholder="Ex: SSIAP 1 et 2 — KEOLIS KCMGP L16/L17/L18"></div>
+    <div class="form-group"><label class="form-label">Client commun *</label><input class="form-input" id="d-client" placeholder="KEOLIS KCMGP"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Durée contrat</label><input class="form-input" id="d-duree-co" value="7 ans"></div>
+      <div class="form-group"><label class="form-label">Date signature</label><input class="form-input" id="d-date" value="${today()}"></div>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="genDoc('cotraitance')">Générer le contrat →</button>`;
+
+  if(type==="convocation")return`
+    <h3 style="margin-bottom:12px">📨 Convocation</h3>
+    ${clientBlock}${formationBlock}
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Formateur</label>${formateurSelector("d-formateur-select")}</div>
+      <div class="form-group"><label class="form-label">Lieu</label><select class="form-input" id="d-lieu">
+        <option value="evry">Salle PROPREV — 10 Bd Louise Michel, 91000 Évry</option>
+        <option value="client">Chez le client</option>
+      </select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Heure début</label><input class="form-input" id="d-heure-debut" value="09h00"></div>
+      <div class="form-group"><label class="form-label">Heure fin</label><input class="form-input" id="d-heure-fin" value="17h00"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Stagiaires (un par ligne)</label>
+      <textarea class="form-input" id="d-stagiaires" rows="5" placeholder="Jean DUPONT&#10;Marie MARTIN"></textarea></div>
+    <button class="btn btn-primary btn-block" onclick="genDoc('convocation')">Générer la convocation →</button>`;
+
+  return`<p>Document en construction...</p>`;
+}
+
+// ═══ STAGIAIRES ROWS ═══
+function renderStagiaireRows(){
+  return docStagiaires.map((s,i)=>`<div class="stag-row">
+    <input class="form-input" placeholder="NOM" value="${s.nom}" onchange="docStagiaires[${i}].nom=this.value.toUpperCase();this.value=this.value.toUpperCase()">
+    <input class="form-input" placeholder="Prénom" value="${s.prenom}" onchange="docStagiaires[${i}].prenom=this.value">
+    <button class="btn btn-sm btn-red" onclick="removeStagRow(${i})" style="padding:4px 8px">✕</button>
+  </div>`).join("");
+}
+function addStagRow(){docStagiaires.push({nom:"",prenom:""});document.getElementById("stag-list").innerHTML=renderStagiaireRows();}
+function removeStagRow(i){if(docStagiaires.length>1)docStagiaires.splice(i,1);document.getElementById("stag-list").innerHTML=renderStagiaireRows();}
+function importStagCSV(){
+  const txt=prompt("Colle la liste des stagiaires (format: NOM Prénom, une par ligne)");
+  if(!txt)return;
+  const lines=txt.split("\n").filter(l=>l.trim());
+  lines.forEach(l=>{
+    const parts=l.trim().split(" ");
+    docStagiaires.push({nom:parts[0]||"",prenom:parts.slice(1).join(" ")||""});
+  });
+  document.getElementById("stag-list").innerHTML=renderStagiaireRows();
+}
+
+// ═══ GÉNÉRATION DOCUMENTS ═══
+function genDoc(type){
+  const g=id=>(document.getElementById(id)||{}).value||"";
+  const gSel=id=>{const el=document.getElementById(id);return el?el.options[el.selectedIndex]?.text||el.value:"";};
+  const client=g("d-client"),siret=g("d-siret"),contact=g("d-contact"),fonction=g("d-fonction");
+  const adresse=g("d-adresse"),formation=g("d-formation"),date=g("d-date"),duree=g("d-duree");
+  const lieu=g("d-lieu")==="evry"?`10 Boulevard Louise Michel, Bât A, RDC, 91000 Évry-Courcouronnes (Locaux PROPREV FORMATION)`:adresse||"Locaux du client";
+  const tarif=parseFloat(g("d-tarif")||"24");
+  const nbstag=parseInt(g("d-nbstag")||"1");
+  const montant=(tarif*parseFloat(duree||0)*nbstag).toFixed(2);
+  const dateAuj=today(),dateAujFull=todayFull();
+  const opco=g("d-opco");
+
+  const header=`<div class="proprev-header">
+    <div style="font-size:20px;font-weight:700;color:#1B3A6B;letter-spacing:.5px">${PROPREV.nom}</div>
+    <div style="font-size:10px;color:#555;margin-top:3px">SIRET : ${PROPREV.siret} &nbsp;|&nbsp; NDA : ${PROPREV.nda}</div>
+    <div style="font-size:10px;color:#555">Siège : ${PROPREV.siege} &nbsp;|&nbsp; Tél : ${PROPREV.tel} &nbsp;|&nbsp; ${PROPREV.email}</div>
+    <div style="font-size:9px;color:#888;margin-top:2px">Certifié Qualiopi — ${PROPREV.qualiopi}</div>
+  </div>`;
+
+  let html="";
+
+  if(type==="convention"){
+    const numconv=g("d-numconv")||`CONV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`;
+    const objectifs=g("d-objectifs")||"À l'issue de la formation, le stagiaire sera capable de maîtriser les compétences visées.";
+    const montantTotal=(tarif*parseFloat(duree||0)*nbstag).toFixed(2);
+    html=`${header}
+    <h1>CONVENTION DE FORMATION PROFESSIONNELLE</h1>
+    <div style="text-align:center;font-size:11px;color:#666;margin-bottom:8px">N° <strong>${numconv}</strong> &nbsp;|&nbsp; Établie le ${dateAujFull}</div>
+    <p style="text-align:center;font-size:10px;margin-bottom:10px;color:#555">En application des articles L.6353-1 et suivants du Code du travail</p>
+    <h2>ENTRE LES SOUSSIGNÉS</h2>
+    <table><tr><th style="width:35%">Organisme de formation</th><td><strong>${PROPREV.nom}</strong><br>SIRET : ${PROPREV.siret} | NDA : ${PROPREV.nda}<br>${PROPREV.siege}<br>Représenté par <strong>${PROPREV.dirigeant}</strong>, ${PROPREV.fonction}</td></tr>
+    <tr><th>Entreprise cliente</th><td><strong>${client}</strong>${siret?`<br>SIRET : ${siret}`:""}<br>${adresse||""}<br>Représentée par <strong>${contact}</strong>${fonction?`, ${fonction}`:""}${opco?`<br>OPCO : <strong>${opco}</strong>`:""}</td></tr></table>
+    <h2>DÉSIGNATION DE L'ACTION DE FORMATION</h2>
+    <table>
+      <tr><th>Intitulé</th><td><strong>${formation}</strong></td></tr>
+      <tr><th>Date(s)</th><td>${date}</td></tr>
+      <tr><th>Durée totale</th><td>${duree} heures</td></tr>
+      <tr><th>Lieu</th><td>${lieu}</td></tr>
+      <tr><th>Nombre de stagiaires</th><td>${nbstag}</td></tr>
+      <tr><th>Objectifs pédagogiques</th><td>${objectifs}</td></tr>
+      <tr><th>Moyens pédagogiques</th><td>Exposés théoriques, exercices pratiques, supports pédagogiques, mises en situation</td></tr>
+      <tr><th>Modalités d'évaluation</th><td>QCM en fin de formation — Attestation de formation délivrée</td></tr>
+    </table>
+    <h2>CONDITIONS FINANCIÈRES</h2>
+    <table>
+      <tr><th>Tarif HT par heure et par stagiaire</th><td>${tarif} €</td></tr>
+      <tr><th>Nombre de stagiaires</th><td>${nbstag}</td></tr>
+      <tr><th>Durée</th><td>${duree} heures</td></tr>
+      <tr class="subtotal-row"><th>Montant total HT</th><td><strong>${montantTotal} €</strong></td></tr>
+      <tr><th>TVA</th><td>${PROPREV.tva}</td></tr>
+      <tr class="total-row"><td><strong>NET À PAYER</strong></td><td><strong>${montantTotal} €</strong></td></tr>
+    </table>
+    <p style="font-size:10px;margin-top:8px">Règlement par virement bancaire — Réf. : ${numconv}</p>
+    <div class="signature-zone">
+      <div class="sig-box"><strong>Pour ${PROPREV.nom}</strong><br><small>${PROPREV.dirigeant}, ${PROPREV.fonction}</small><br><br>Date : ${dateAuj}<br><br>Signature + Cachet :</div>
+      <div class="sig-box"><strong>Pour ${client}</strong><br><small>${contact}${fonction?`, ${fonction}`:""}</small><br><br>Date : &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br><br>Signature + Cachet :</div>
+    </div>
+    <p class="mention">${PROPREV.nom} — ${PROPREV.nda} — Certifié Qualiopi ${PROPREV.qualiopi}</p>`;
+  }
+
+  else if(type==="emargement"){
+    const formateur=gSel("d-formateur-select")||g("d-formateur")||currentUser?.name||"";
+    const nbJours=parseInt(g("d-nbjours")||"2");
+    const hdebut=g("d-hdebut")||"09h00",hfin=g("d-hfin")||"17h00";
+    const stagiaires=g("d-stagiaires").split("\n").filter(s=>s.trim());
+    const joursHeaders=Array.from({length:nbJours},(_,i)=>`<th style="width:${Math.floor(50/nbJours)}%">Jour ${i+1}<br><small>Matin&nbsp;/&nbsp;A-midi</small></th>`).join("");
+    const joursSignature=(stag)=>Array.from({length:nbJours},()=>`<td><div style="display:flex;gap:4px"><div style="flex:1;height:30px;border-right:1px dashed #ccc"></div><div style="flex:1;height:30px"></div></div></td>`).join("");
+    const lignes=stagiaires.map((s,i)=>`<tr style="background:${i%2===0?"#fff":"#fafafa"}"><td>${i+1}</td><td><strong>${s.trim()}</strong></td>${joursSignature(s)}</tr>`).join("");
+    const emptyLines=Array(Math.max(0,12-stagiaires.length)).fill(null).map((_,i)=>`<tr style="height:36px;background:${(stagiaires.length+i)%2===0?"#fff":"#fafafa"}"><td style="color:#ccc">${stagiaires.length+i+1}</td><td></td>${Array.from({length:nbJours},()=>`<td><div style="display:flex;gap:4px"><div style="flex:1;height:30px;border-right:1px dashed #ccc"></div><div style="flex:1;height:30px"></div></div></td>`).join("")}</tr>`).join("");
+    html=`${header}
+    <h1>FEUILLE D'ÉMARGEMENT</h1>
+    <table style="margin-bottom:10px">
+      <tr><th style="width:20%">Formation</th><td><strong>${formation}</strong></td><th style="width:20%">Formateur</th><td>${formateur}</td></tr>
+      <tr><th>Client</th><td>${client}</td><th>Date(s)</th><td>${date}</td></tr>
+      <tr><th>Lieu</th><td colspan="3">${lieu}</td></tr>
+      <tr><th>Horaires</th><td colspan="3">${hdebut} – ${hfin}</td></tr>
+    </table>
+    <table>
+      <thead><tr><th style="width:4%">N°</th><th style="width:${46-Math.min(nbJours*10,30)}%">Nom et Prénom</th>${joursHeaders}</tr></thead>
+      <tbody>${lignes}${emptyLines}</tbody>
+    </table>
+    <div class="signature-zone" style="margin-top:16px">
+      <div class="sig-box"><strong>Signature du Formateur</strong><br><small>${formateur}</small><br><br>Date :<br>Signature :</div>
+      <div class="sig-box"><strong>Cachet / Signature Entreprise</strong><br><small>${client}</small><br><br>Date :<br>Signature :</div>
+    </div>
+    <p class="mention">Feuille d'émargement — À conserver 5 ans — ${PROPREV.nom} — NDA : ${PROPREV.nda}</p>`;
+  }
+
+  else if(type==="attestation"){
+    const resultat=g("d-resultat")||"A satisfait aux objectifs de la formation";
+    const stags=docStagiaires.filter(s=>s.nom.trim());
+    if(stags.length===0)stags.push({nom:"À RENSEIGNER",prenom:""});
+    html=stags.map((s,idx)=>`<div class="doc-preview" ${idx>0?'style="margin-top:20px;page-break-before:always"':''}>
+      ${header}
+      <h1>ATTESTATION DE FORMATION</h1>
+      <div style="text-align:center;font-size:11px;color:#666;margin-bottom:12px">Établie le ${dateAujFull}${stags.length>1?` &nbsp;|&nbsp; Attestation ${idx+1}/${stags.length}`:""}</div>
+      <p style="margin:10px 0;font-size:12px">Je soussigné(e) <strong>${PROPREV.dirigeant}</strong>, ${PROPREV.fonction} de <strong>${PROPREV.nom}</strong>, atteste que :</p>
+      <div style="background:linear-gradient(135deg,#E8EEF7,#f0f4ff);border:2px solid #1B3A6B;border-radius:10px;padding:16px;margin:12px 0;text-align:center">
+        <div style="font-size:22px;font-weight:700;color:#1B3A6B;margin-bottom:4px">${s.prenom} ${s.nom}</div>
+        <div style="font-size:12px;color:#444">Salarié(e) de : <strong>${client}</strong></div>
+      </div>
+      <table>
+        <tr><th style="width:35%">Formation suivie</th><td><strong>${formation}</strong></td></tr>
+        <tr><th>Date(s)</th><td>${date}</td></tr>
+        <tr><th>Durée</th><td>${duree} heures</td></tr>
+        <tr><th>Lieu</th><td>${lieu}</td></tr>
+        <tr><th>Résultat</th><td><strong style="color:#1D7044">✓ ${resultat}</strong></td></tr>
+      </table>
+      <p style="margin-top:14px;font-size:11px">La présente attestation est délivrée pour servir et valoir ce que de droit.</p>
+      <div class="signature-zone" style="margin-top:16px">
+        <div class="sig-box"><strong>${PROPREV.nom}</strong><br><small>${PROPREV.dirigeant}, ${PROPREV.fonction}</small><br><br>Date : ${dateAuj}<br><br>Signature + Cachet :</div>
+        <div style="flex:1"></div>
+      </div>
+      <p class="mention">${PROPREV.nom} — SIRET : ${PROPREV.siret} — NDA : ${PROPREV.nda} — Certifié Qualiopi</p>
+    </div>`).join("");
+
+    // Multi-attestations → affichage direct multiple
+    const preview=document.getElementById("doc-preview");
+    if(preview){preview.innerHTML=html;preview.style.display="block";document.getElementById("print-btn").style.display="block";}
+    addLog(`${currentUser.name} a généré ${stags.length} attestation(s) — ${client} — ${formation}`);
+    return;
+  }
+
+  else if(type==="facture"){
+    const numfac=g("d-numfac")||numFac();
+    const facturedA=g("d-factured-a")||client;
+    const refopco=g("d-refopco");
+    const montantTotal=(tarif*parseFloat(duree||0)*nbstag).toFixed(2);
+    html=`${header}
+    <h1>FACTURE</h1>
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;gap:20px">
+      <div><div style="font-size:14px;font-weight:700">N° ${numfac}</div><div style="font-size:11px;color:#666">Date : ${dateAujFull}</div><div style="font-size:11px;color:#666">Échéance : 30 jours</div></div>
+      <div style="text-align:right"><div style="font-size:11px;font-weight:600;color:#555">FACTURÉ À :</div><div style="font-weight:700">${facturedA}</div>${siret?`<div style="font-size:11px">SIRET : ${siret}</div>`:""}<div style="font-size:11px">${adresse||""}</div></div>
+    </div>
+    ${refopco?`<div style="background:#e3eef9;padding:6px 10px;border-radius:6px;font-size:11px;margin-bottom:10px">Référence dossier OPCO <strong>${opco||""}</strong> : <strong>${refopco}</strong></div>`:""}
+    <table>
+      <thead><tr><th>Désignation</th><th style="width:10%;text-align:center">Durée</th><th style="width:10%;text-align:center">Nb stag.</th><th style="width:14%;text-align:center">PU HT</th><th style="width:14%;text-align:center">Total HT</th></tr></thead>
+      <tbody>
+        <tr><td>Formation professionnelle : <strong>${formation}</strong><br><small style="color:#666">Client bénéficiaire : ${client} | Date(s) : ${date}</small></td>
+        <td style="text-align:center">${duree}h</td><td style="text-align:center">${nbstag}</td>
+        <td style="text-align:center">${tarif} €</td><td style="text-align:center;font-weight:700">${montantTotal} €</td></tr>
+      </tbody>
+      <tfoot>
+        <tr class="subtotal-row"><td colspan="4" style="text-align:right"><strong>Total HT</strong></td><td style="text-align:center;font-weight:700">${montantTotal} €</td></tr>
+        <tr><td colspan="4" style="text-align:right">TVA</td><td style="text-align:center;font-size:10px">${PROPREV.tva}</td></tr>
+        <tr class="total-row"><td colspan="4" style="text-align:right"><strong>NET À PAYER</strong></td><td style="text-align:center"><strong>${montantTotal} €</strong></td></tr>
+      </tfoot>
+    </table>
+    <div style="margin-top:14px;font-size:11px;background:#f8f8f8;padding:10px;border-radius:6px;border-left:3px solid #1B3A6B">
+      <strong>Règlement par virement bancaire</strong><br>
+      Titulaire : ${PROPREV.nom} | Banque : QONTO<br>
+      IBAN : ${PROPREV.iban} | BIC : ${PROPREV.bic}<br>
+      Référence à indiquer : <strong>${numfac}</strong>
+    </div>
+    <div class="signature-zone" style="margin-top:14px">
+      <div class="sig-box"><strong>${PROPREV.nom}</strong><br><small>${PROPREV.dirigeant}, ${PROPREV.fonction}</small><br><br>Date : ${dateAuj}<br>Signature + Cachet :</div>
+      <div style="flex:1"></div>
+    </div>
+    <p class="mention">Tout retard de paiement entraîne pénalités de 3× le taux légal + indemnité forfaitaire de 40 € (D.441-5 C.com). ${PROPREV.tva}.</p>`;
+  }
+
+  else if(type==="devis"){
+    const numdevis=g("d-numdevis");
+    const validite=g("d-validite")||"30 jours";
+    html=`${header}
+    <h1>DEVIS</h1>
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;gap:20px">
+      <div><div style="font-size:14px;font-weight:700">N° ${numdevis}</div><div style="font-size:11px;color:#666">Date : ${dateAujFull}</div><div style="font-size:11px;color:#666">Validité : <strong>${validite}</strong></div></div>
+      <div style="text-align:right"><div style="font-size:11px;font-weight:600;color:#555">DESTINATAIRE :</div><div style="font-weight:700">${client}</div><div style="font-size:11px">${contact}${fonction?`, ${fonction}`:""}</div><div style="font-size:11px">${adresse||""}</div></div>
+    </div>
+    <table>
+      <thead><tr><th>Désignation</th><th style="width:10%;text-align:center">Durée</th><th style="width:10%;text-align:center">Nb stag.</th><th style="width:14%;text-align:center">PU HT</th><th style="width:14%;text-align:center">Total HT</th></tr></thead>
+      <tbody>
+        <tr><td><strong>${formation}</strong><br><small style="color:#666">Date(s) envisagée(s) : ${date} | Lieu : ${lieu}</small></td>
+        <td style="text-align:center">${duree}h</td><td style="text-align:center">${nbstag}</td>
+        <td style="text-align:center">${tarif} €</td><td style="text-align:center;font-weight:700">${montant} €</td></tr>
+      </tbody>
+      <tfoot>
+        <tr class="total-row"><td colspan="4" style="text-align:right"><strong>NET À PAYER</strong></td><td style="text-align:center"><strong>${montant} €</strong></td></tr>
+      </tfoot>
+    </table>
+    <p style="margin-top:10px;font-size:10px;color:#555">${PROPREV.tva}</p>
+    <p style="font-size:11px;margin-top:8px">Pour valider ce devis, merci de nous retourner ce document signé avec la mention <em>"Bon pour accord"</em>.</p>
+    <div class="signature-zone" style="margin-top:16px">
+      <div class="sig-box"><strong>${PROPREV.nom}</strong><br><small>${PROPREV.dirigeant}</small><br><br>Date : ${dateAuj}<br>Signature :</div>
+      <div class="sig-box"><strong>Bon pour accord — ${client}</strong><br><small>${contact}</small><br><br>Date :<br>Signature :</div>
+    </div>`;
+  }
+
+  else if(type==="soustraitance"){
+    const formNom=g("d-form-nom"),formPrenom=g("d-form-prenom");
+    const formSiret=g("d-form-siret"),formNda=g("d-form-nda"),formAdresse=g("d-form-adresse");
+    const tarifST=parseFloat(g("d-tarif")||"300");
+    const dureeST=parseFloat(g("d-duree-st")||duree||"14");
+    const montantST=(tarifST*dureeST).toFixed(2);
+    html=`${header}
+    <h1>CONTRAT DE SOUS-TRAITANCE</h1>
+    <div style="text-align:center;font-size:11px;color:#666;margin-bottom:12px">Établi le ${dateAujFull}</div>
+    <h2>ENTRE LES SOUSSIGNÉS</h2>
+    <table>
+      <tr><th style="width:35%">Donneur d'ordre (OF principal)</th><td><strong>${PROPREV.nom}</strong><br>SIRET : ${PROPREV.siret} | NDA : ${PROPREV.nda}<br>${PROPREV.siege}<br>Représenté par <strong>${PROPREV.dirigeant}</strong>, ${PROPREV.fonction}</td></tr>
+      <tr><th>Sous-traitant (Formateur)</th><td><strong>${formPrenom} ${formNom}</strong><br>${formSiret?`SIRET : ${formSiret}`:""} ${formNda?`| NDA : ${formNda}`:""}<br>${formAdresse||""}</td></tr>
+    </table>
+    <h2>OBJET DU CONTRAT</h2>
+    <table>
+      <tr><th>Formation à dispenser</th><td><strong>${formation}</strong></td></tr>
+      <tr><th>Client final</th><td>${client}</td></tr>
+      <tr><th>Date(s)</th><td>${date}</td></tr>
+      <tr><th>Durée</th><td>${dureeST} heures</td></tr>
+      <tr class="subtotal-row"><th>Rémunération HT</th><td><strong>${montantST} €</strong> (${tarifST} €/heure × ${dureeST}h)</td></tr>
+      <tr><th>Modalités de paiement</th><td>Virement bancaire sous 30 jours après réception facture et encaissement OPCO</td></tr>
+    </table>
+    <h2>OBLIGATIONS DU SOUS-TRAITANT</h2>
+    <p style="font-size:11px;line-height:1.7">Le sous-traitant s'engage à : (1) Dispenser la formation selon le programme défini par ${PROPREV.nom} ; (2) Signer les feuilles d'émargement et les remettre à l'issue de chaque journée ; (3) Remettre tous les documents pédagogiques dans les 48h suivant la formation ; (4) Respecter la confidentialité concernant le client final ; (5) Ne pas démarcher directement le client pour une durée de 3 ans. <br><strong>Article 9</strong> : Le sous-traitant doit remettre son NDA dans les 3 mois suivant la signature du présent contrat.</p>
+    <div class="signature-zone">
+      <div class="sig-box"><strong>${PROPREV.nom}</strong><br><small>${PROPREV.dirigeant}, ${PROPREV.fonction}</small><br><br>Date : ${dateAuj}<br><br>Signature + Cachet :</div>
+      <div class="sig-box"><strong>${formPrenom} ${formNom}</strong><br><small>Formateur indépendant</small><br><br>Date :<br><br>Signature :</div>
+    </div>
+    <p class="mention">${PROPREV.nom} — SIRET : ${PROPREV.siret} — NDA : ${PROPREV.nda}</p>`;
+  }
+
+  else if(type==="cotraitance"){
+    const coNom=g("d-co-nom"),coSiret=g("d-co-siret"),coNda=g("d-co-nda"),coAdresse=g("d-co-adresse"),coContact=g("d-co-contact");
+    const objet=formation,clientCommun=client,dureeCo=g("d-duree-co")||"7 ans";
+    html=`${header}
+    <h1>CONTRAT DE CO-TRAITANCE</h1>
+    <div style="text-align:center;font-size:11px;color:#666;margin-bottom:12px">Établi le ${dateAujFull}</div>
+    <h2>ENTRE LES SOUSSIGNÉS</h2>
+    <table>
+      <tr><th style="width:35%">Mandataire (OF principal)</th><td><strong>${PROPREV.nom}</strong><br>SIRET : ${PROPREV.siret} | NDA : ${PROPREV.nda}<br>${PROPREV.siege}<br>Représenté par <strong>${PROPREV.dirigeant}</strong>, ${PROPREV.fonction}</td></tr>
+      <tr><th>Co-traitant</th><td><strong>${coNom}</strong><br>${coSiret?`SIRET : ${coSiret}`:""} ${coNda?`| NDA : ${coNda}`:""}<br>${coAdresse||""}<br>Représenté par <strong>${coContact}</strong></td></tr>
+    </table>
+    <h2>ARTICLE 1 — OBJET</h2>
+    <p style="font-size:11px;line-height:1.7">Le présent contrat définit les modalités de co-traitance pour la réalisation de : <strong>${objet}</strong> auprès du client : <strong>${clientCommun}</strong>.</p>
+    <h2>ARTICLE 2 — DURÉE</h2>
+    <p style="font-size:11px;line-height:1.7">Le présent contrat est conclu pour une durée de <strong>${dureeCo}</strong> à compter de la date de signature.</p>
+    <h2>ARTICLE 3 — OBLIGATIONS DU CO-TRAITANT</h2>
+    <p style="font-size:11px;line-height:1.7">Le co-traitant s'engage formellement à : (1) Ne jamais contractualiser directement avec <strong>${clientCommun}</strong> ou tout client présenté par ${PROPREV.nom} sans accord écrit préalable ; (2) Notifier ${PROPREV.nom} dans un délai de <strong>48 heures</strong> de toute sollicitation émanant d'un client commun ; (3) Respecter la confidentialité des informations commerciales et techniques ; (4) Appliquer les tarifs et conditions définis conjointement.</p>
+    <h2>ARTICLE 4 — CONDITIONS FINANCIÈRES</h2>
+    <p style="font-size:11px;line-height:1.7">Les conditions financières de chaque mission sont définies dans des annexes spécifiques. Toute facturation directe au client commun sans accord préalable écrit de ${PROPREV.nom} entraîne l'application des pénalités de l'article 5.</p>
+    <h2>ARTICLE 5 — PÉNALITÉS</h2>
+    <div style="background:#FDECEA;border-left:4px solid #C00000;padding:8px;border-radius:4px;font-size:11px;line-height:1.7">
+      Tout manquement aux obligations de l'article 3 entraîne : <strong>pénalité forfaitaire de 5 000 € par manquement constaté</strong>, plus <strong>majoration de 50% sur toutes les commissions dues au co-traitant</strong> pour la mission concernée.
+    </div>
+    <div class="signature-zone" style="margin-top:16px">
+      <div class="sig-box"><strong>${PROPREV.nom}</strong><br><small>${PROPREV.dirigeant}, ${PROPREV.fonction}</small><br><br>Date : ${dateAuj}<br><br>Signature + Cachet :</div>
+      <div class="sig-box"><strong>${coNom}</strong><br><small>${coContact}</small><br><br>Date :<br><br>Signature + Cachet :</div>
+    </div>
+    <p class="mention">${PROPREV.nom} — SIRET : ${PROPREV.siret} — NDA : ${PROPREV.nda}</p>`;
+  }
+
+  else if(type==="convocation"){
+    const formateur=gSel("d-formateur-select")||g("d-formateur")||"";
+    const heureDebut=g("d-heure-debut")||"09h00",heureFin=g("d-heure-fin")||"17h00";
+    const stagiaires=g("d-stagiaires").split("\n").filter(s=>s.trim());
+    const listeStag=stagiaires.length>0?`<ul style="margin:4px 0 0 16px">${stagiaires.map(s=>`<li style="font-size:12px;margin:2px 0">${s.trim()}</li>`).join("")}</ul>`:`<p><em style="color:#999">À compléter</em></p>`;
+    html=`${header}
+    <h1>CONVOCATION À UNE FORMATION</h1>
+    <div style="text-align:center;font-size:11px;color:#666;margin-bottom:12px">Émise le ${dateAujFull}</div>
+    <p style="margin-bottom:10px;font-size:12px">Madame, Monsieur,</p>
+    <p style="font-size:12px;margin-bottom:10px">Nous avons le plaisir de vous convoquer à la formation suivante :</p>
+    <table>
+      <tr><th style="width:35%">Formation</th><td><strong>${formation}</strong></td></tr>
+      <tr><th>Organisme</th><td>${PROPREV.nom} — NDA : ${PROPREV.nda}</td></tr>
+      <tr><th>Formateur</th><td>${formateur}</td></tr>
+      <tr><th>Date(s)</th><td><strong>${date}</strong></td></tr>
+      <tr><th>Horaires</th><td><strong>${heureDebut} — ${heureFin}</strong></td></tr>
+      <tr><th>Lieu</th><td><strong>${lieu}</strong></td></tr>
+      <tr><th>Durée totale</th><td>${duree} heures</td></tr>
+    </table>
+    <h2>Stagiaires convoqués (${stagiaires.length} personne(s))</h2>
+    ${listeStag}
+    <div style="background:#E8EEF7;border-radius:8px;padding:10px;margin-top:12px;font-size:11px">
+      <strong>Informations pratiques :</strong><br>
+      • Merci de vous présenter 10 minutes avant le début de la session<br>
+      • Munissez-vous d'une pièce d'identité<br>
+      • En cas d'empêchement : <strong>${PROPREV.email}</strong> / ${PROPREV.tel}
+    </div>
+    <div style="margin-top:14px">
+      <div class="sig-box" style="width:45%"><strong>${PROPREV.nom}</strong><br><small>${PROPREV.dirigeant}</small><br>Date : ${dateAuj}<br><br>Signature + Cachet :</div>
+    </div>`;
+  }
+
+  const preview=document.getElementById("doc-preview");
+  if(preview){preview.innerHTML=`<div class="doc-preview">${html}</div>`;preview.style.display="block";document.getElementById("print-btn").style.display="block";}
+  addLog(`${currentUser.name} a généré : ${type} — ${client}`);
+}
+
+// ═══ RENDER PAGES ═══
+function renderLogin(){
+  return`<div class="login-wrap">
+    <div style="text-align:center">
+      <div style="font-size:13px;color:#1B3A6B;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">PROPREV FORMATION</div>
+      <div style="font-size:22px;font-weight:700;margin-bottom:4px">Espace équipe</div>
+      <div style="font-size:13px;color:#666">Sélectionne ton profil</div>
+    </div>
+    <div class="login-grid">
+      ${Object.values(USERS).map(u=>`<div class="user-card ${u.admin?"admin-card":""}" onclick="login('${u.id}')">
+        ${av(u,44)}<div style="font-size:13px;font-weight:600">${u.name}</div>
+        <div style="font-size:10px;color:#666">${u.role.split("·")[0].trim()}</div>
+      </div>`).join("")}
+    </div>
+    <div style="font-size:11px;color:#999;text-align:center">Données synchronisées en temps réel</div>
+  </div>`;
+}
+
+function renderTaskCard(t,showA=false,done=false){
+  const u=USERS[t.assignedTo]||{name:t.assignedTo,color:"#888"};
+  const isOwn=currentUser&&(t.assignedTo===currentUser.id||currentUser.admin);
+  return`<div class="task-card ${done?"":t.priority}">
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">
+      ${pBadge(t.priority)}<span class="badge b-${(t.category||"proprev").toLowerCase()}">${t.category}</span>${sBadge(t.status)}
+    </div>
+    <div class="task-title">${t.title}</div>
+    <div class="task-meta"><span class="task-client">${t.client||""}</span>${t.deadline?`<span>→ ${t.deadline}</span>`:""} ${showA?`<span>${u.name}</span>`:""}</div>
+    ${t.notes?`<div class="task-notes">${t.notes}</div>`:""}
+    ${t.procedure?`<button class="btn btn-sm" onclick="toggleProc('${t.id}')" style="margin-top:4px">📋 Procédure</button><div class="procedure-box" id="pb-${t.id}">${t.procedure}</div>`:""}
+    ${isOwn&&!done?`<div class="task-actions">
+      ${t.status==="todo"?`<button class="btn btn-sm btn-primary" onclick="chStatus('${t.id}','inprogress')">Démarrer</button>`:""}
+      ${t.status==="inprogress"?`<button class="btn btn-sm btn-green" onclick="chStatus('${t.id}','done')">Terminé ✓</button>`:""}
+      ${t.status!=="blocked"?`<button class="btn btn-sm" style="color:#C00000;border-color:#C00000" onclick="chStatus('${t.id}','blocked')">Bloqué</button>`:""}
+      ${t.status==="blocked"?`<button class="btn btn-sm" onclick="chStatus('${t.id}','todo')">Débloquer</button>`:""}
+    </div>`:""}
+  </div>`;
+}
+
+function renderAlertCard(a){
+  if(a.status==="done")return"";
+  const isOwn=currentUser&&(a.assignedTo===currentUser.id||currentUser.admin);
+  return`<div class="alert-card ${a.level==="critical"?"alert-critical":"alert-important"}">
+    <div class="alert-title">${a.level==="critical"?"🔴":"🟠"} ${a.client} — ${a.problem}</div>
+    <div class="alert-detail">${a.detail}</div>
+    <div class="alert-footer"><span style="font-size:10px;color:#777">→ ${USERS[a.assignedTo]?.name} · ${a.deadline}</span>
+    ${isOwn?`<button class="btn btn-sm" onclick="resolveAlert('${a.id}')">Résolu ✓</button>`:""}</div>
+  </div>`;
+}
+
+function renderDashboard(){
+  const mt=tasks.filter(t=>t.assignedTo===currentUser.id&&t.status!=="done");
+  const ma=alerts.filter(a=>(a.assignedTo===currentUser.id||currentUser.admin)&&a.status!=="done");
+  const ms=[...mt].sort((a,b)=>(PO[a.priority]||1)-(PO[b.priority]||1));
+  const caTotal=sessions.filter(s=>s.statut==="termine").reduce((s,x)=>s+(x.montantHT||0),0);
+  const stats=currentUser.admin
+    ?`<div class="stat-grid">
+      <div class="stat-card"><div class="stat-num" style="color:#C00000">${alerts.filter(a=>a.level==="critical"&&a.status!=="done").length}</div><div class="stat-label">Alertes critiques</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#E87722">${tasks.filter(t=>t.status==="inprogress").length}</div><div class="stat-label">En cours</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#1D7044">${tasks.filter(t=>t.status==="done").length}</div><div class="stat-label">Terminées</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#1B3A6B">${tasks.filter(t=>t.status!=="done").length}</div><div class="stat-label">Restantes</div></div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,#1B3A6B,#2a5298);color:white;margin-bottom:10px">
+      <div style="font-size:11px;opacity:.8">CA sessions identifié</div>
+      <div style="font-size:24px;font-weight:700">${caTotal.toLocaleString("fr-FR")} €</div>
+      <div style="font-size:11px;opacity:.7">${sessions.filter(s=>s.statut==="termine").length} sessions terminées · ${sessions.filter(s=>s.statut==="planifie").length} planifiées</div>
+    </div>`
+    :`<div class="stat-grid">
+      <div class="stat-card"><div class="stat-num" style="color:#C00000">${mt.filter(t=>t.priority==="urgent").length}</div><div class="stat-label">Urgentes</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:#1B3A6B">${mt.length}</div><div class="stat-label">Mes tâches</div></div>
+    </div>`;
+  return`${stats}
+    ${ma.length>0?`<div class="section-title">Alertes actives</div>${ma.slice(0,3).map(renderAlertCard).join("")}${ma.length>3?`<button class="btn btn-block" onclick="setTab('alerts')">Voir toutes (${ma.length})</button>`:""}`:""}
+    <div class="section-title">Mes tâches prioritaires</div>
+    ${ms.length===0?`<div class="empty">✅ Aucune tâche en attente</div>`:ms.slice(0,5).map(t=>renderTaskCard(t)).join("")}
+    ${ms.length>5?`<button class="btn btn-block" onclick="setTab('tasks')">Voir toutes (${ms.length})</button>`:""}
+    ${activityLog.length>0?`<div class="section-title">Activité récente</div><div class="card" style="padding:8px 12px">${activityLog.slice(0,4).map(l=>`<div class="log-item"><span class="log-time">${l.time}</span><span><b>${l.user}</b> — ${l.msg}</span></div>`).join("")}</div>`:""}`;
+}
+
+function renderTasks(){
+  let shown=taskFilter==="my"?tasks.filter(t=>t.assignedTo===currentUser.id):tasks;
+  if(taskCat!=="all")shown=shown.filter(t=>t.category===taskCat);
+  const todo=[...shown.filter(t=>t.status!=="done")].sort((a,b)=>(PO[a.priority]||1)-(PO[b.priority]||1));
+  const done=shown.filter(t=>t.status==="done");
+  return`<div class="tabs">
+    <span class="tab ${taskFilter==="my"?"active":""}" onclick="taskFilter='my';render()">Mes tâches</span>
+    ${currentUser.admin?`<span class="tab ${taskFilter==="all"?"active":""}" onclick="taskFilter='all';render()">Toutes</span>`:""}
+    <span class="tab ${taskCat==="all"?"active":""}" onclick="taskCat='all';render()">Tout</span>
+    <span class="tab ${taskCat==="PROPREV"?"active":""}" onclick="taskCat='PROPREV';render()">PROPREV</span>
+    <span class="tab ${taskCat==="CFA"?"active":""}" onclick="taskCat='CFA';render()">CFA</span>
+  </div>
+  ${todo.length===0?`<div class="empty">✅ Aucune tâche ici</div>`:todo.map(t=>renderTaskCard(t,taskFilter==="all")).join("")}
+  ${done.length>0?`<div class="section-title">Terminées (${done.length})</div>${done.slice(0,3).map(t=>renderTaskCard(t,true,true)).join("")}`:""}`;
+}
+
+function renderAlerts(){
+  const active=alerts.filter(a=>a.status!=="done");
+  if(!active.length)return`<div class="empty">✅ Aucune alerte active</div>`;
+  const crit=active.filter(a=>a.level==="critical"),imp=active.filter(a=>a.level==="important");
+  return`${crit.length?`<div class="section-title">🔴 Critiques</div>${crit.map(renderAlertCard).join("")}`:""}
+    ${imp.length?`<div class="section-title">🟠 Importantes</div>${imp.map(renderAlertCard).join("")}`:""}`;
+}
+
+function renderDocs(){
+  const docs=[
+    {type:"convention",icon:"📋",name:"Convention",desc:"Convention de formation"},
+    {type:"emargement",icon:"✍️",name:"Émargement",desc:"Feuille de présence"},
+    {type:"attestation",icon:"🏆",name:"Attestation",desc:"Multi-stagiaires"},
+    {type:"facture",icon:"💶",name:"Facture",desc:"Facture client"},
+    {type:"devis",icon:"📊",name:"Devis",desc:"Devis formation"},
+    {type:"soustraitance",icon:"📝",name:"Sous-traitance",desc:"Contrat formateur"},
+    {type:"cotraitance",icon:"🤝",name:"Co-traitance",desc:"Contrat partenaire"},
+    {type:"convocation",icon:"📨",name:"Convocation",desc:"Convocation stagiaires"},
+  ];
+  return`<div class="doc-grid">
+    ${docs.map(d=>`<div class="doc-card" onclick="showDoc('${d.type}')">
+      <div class="doc-icon">${d.icon}</div>
+      <div class="doc-name">${d.name}</div>
+      <div class="doc-desc">${d.desc}</div>
+    </div>`).join("")}
+  </div>
+  <div id="doc-form-container" style="${currentDoc?"":"display:none"}">
+    ${currentDoc?`<div class="card">${getDocForm(currentDoc)}</div>`:""}
+    <div id="doc-preview"></div>
+    <button id="print-btn" class="btn btn-green btn-block no-print" style="display:none" onclick="window.print()">🖨️ Imprimer / Enregistrer en PDF</button>
+    <button class="btn btn-block no-print" style="margin-top:6px" onclick="currentDoc=null;docStagiaires=[{nom:'',prenom:''}];render()">← Retour aux documents</button>
+  </div>`;
+}
+function showDoc(type){currentDoc=type;docStagiaires=[{nom:"",prenom:""}];render();setTimeout(()=>{const el=document.getElementById("doc-form-container");if(el)el.style.display="block";},50);}
+
+function renderClients(){
+  const statuts={actif:"🟢",prospect:"🔵",inactif:"⚫",partenaire:"🤝"};
+  return`<div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:600">${CLIENTS.filter(c=>c.statut==="actif").length} clients actifs</div>
+      <div class="tabs" style="margin:0">
+        ${["actif","prospect","partenaire"].map(s=>`<span class="tab ${catFilter===s?"active":""}" onclick="catFilter='${s}';render()">${statuts[s]} ${s.charAt(0).toUpperCase()+s.slice(1)}</span>`).join("")}
+        <span class="tab ${catFilter==="all"?"active":""}" onclick="catFilter='all';render()">Tous</span>
+      </div>
+    </div>
+    ${CLIENTS.filter(c=>catFilter==="all"||c.statut===catFilter).map(c=>`<div class="client-card">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div>
+          <div style="font-weight:600;font-size:13px;color:#1B3A6B">${statuts[c.statut]||""} ${c.nom}</div>
+          ${c.siret?`<div style="font-size:10px;color:#999">SIRET : ${c.siret}</div>`:""}
+          ${c.contact?`<div style="font-size:11px;color:#555;margin-top:2px">👤 ${c.contact}${c.fonction?` — ${c.fonction}`:""}</div>`:""}
+          ${c.email?`<div style="font-size:11px;color:#555">✉️ ${c.email}</div>`:""}
+          ${c.adresse?`<div style="font-size:10px;color:#999">📍 ${c.adresse}</div>`:""}
+          ${c.notes?`<div style="font-size:10px;color:#E87722;margin-top:3px;font-style:italic">📝 ${c.notes}</div>`:""}
+        </div>
+        ${c.opco?`<span class="badge b-proprev">${c.opco}</span>`:""}
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-sm btn-primary" onclick="startDoc('convention','${c.id}')">Convention</button>
+        <button class="btn btn-sm" onclick="startDoc('attestation','${c.id}')">Attestation</button>
+        <button class="btn btn-sm" onclick="startDoc('facture','${c.id}')">Facture</button>
+      </div>
+    </div>`).join("")}
+  </div>`;
+}
+
+function startDoc(type,clientId){
+  currentDoc=type;
+  docStagiaires=[{nom:"",prenom:""}];
+  setTab("docs");
+  setTimeout(()=>{
+    const sel=document.getElementById("d-client-select");
+    if(sel){sel.value=clientId;fillClientFields("d-client-select");}
+  },100);
+}
+
+function renderSessions(){
+  const sessionsSort=[...sessions].sort((a,b)=>new Date(b.dateDebut)-new Date(a.dateDebut));
+  const caTotal=sessions.filter(s=>s.statut==="termine").reduce((s,x)=>s+(x.montantHT||0),0);
+  return`<div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <div style="font-size:13px;font-weight:600">${sessions.length} sessions</div>
+        <div style="font-size:11px;color:#1D7044;font-weight:600">CA : ${caTotal.toLocaleString("fr-FR")} €</div>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="showNewSession()">+ Session</button>
+    </div>
+    <div id="new-session-form" style="display:none" class="card">
+      <h3 style="margin-bottom:10px;font-size:13px">Nouvelle session</h3>
+      <div class="form-group"><label class="form-label">Client</label>${clientSelector("ns-client","")}</div>
+      <div class="form-group"><label class="form-label">Formation</label>${formationSelector("ns-formation","")}</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Date début</label><input class="form-input" id="ns-debut" type="date"></div>
+        <div class="form-group"><label class="form-label">Nb stagiaires</label><input class="form-input" id="ns-nbstag" type="number" value="8"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Montant HT (€)</label><input class="form-input" id="ns-montant" type="number" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">Statut</label><select class="form-input" id="ns-statut"><option value="planifie">Planifié</option><option value="termine">Terminé</option></select></div>
+      </div>
+      <button class="btn btn-orange btn-block" onclick="addSession()">Enregistrer →</button>
+      <button class="btn btn-block" style="margin-top:6px" onclick="document.getElementById('new-session-form').style.display='none'">Annuler</button>
+    </div>
+    ${sessionsSort.map(s=>`<div class="session-card ${s.statut}">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div>
+          <div style="font-weight:600;font-size:13px">${s.formation}</div>
+          <div style="font-size:11px;color:#555;margin-top:2px">🏢 ${s.client} ${s.ref?`<span style="color:#999">· ${s.ref}</span>`:""}</div>
+          <div style="font-size:11px;color:#555">📅 ${s.dateDebut?new Date(s.dateDebut).toLocaleDateString("fr-FR"):""} ${s.dateFin&&s.dateFin!==s.dateDebut?`→ ${new Date(s.dateFin).toLocaleDateString("fr-FR")}`:""}</div>
+          ${s.nbStag?`<div style="font-size:11px;color:#555">👥 ${s.nbStag} stagiaires${s.formateur?` · 👨‍🏫 ${s.formateur}`:""}</div>`:""}
+          ${s.opco?`<div style="font-size:10px;color:#888">OPCO : ${s.opco}</div>`:""}
+        </div>
+        <div style="text-align:right">
+          ${s.montantHT?`<div style="font-weight:700;font-size:14px;color:#1D7044">${s.montantHT.toLocaleString("fr-FR")} €</div>`:""}
+          <span class="badge ${s.statut==="termine"?"b-normal":s.statut==="planifie"?"b-important":"b-todo"}">${s.statut==="termine"?"✓ Terminé":s.statut==="planifie"?"Planifié":"En cours"}</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <button class="btn btn-sm" onclick="startDoc('attestation','')">Attestations</button>
+        <button class="btn btn-sm" onclick="startDoc('emargement','')">Émargement</button>
+        <button class="btn btn-sm" onclick="startDoc('facture','')">Facture</button>
+      </div>
+    </div>`).join("")}
+  </div>`;
+}
+
+function showNewSession(){document.getElementById("new-session-form").style.display="block";}
+function addSession(){
+  const clientSel=document.getElementById("ns-client");
+  const formSel=document.getElementById("ns-formation");
+  const cli=CLIENTS.find(c=>c.id===clientSel?.value);
+  const form=FORMATIONS_CAT.find(f=>f.id===formSel?.value);
+  const s={id:"s"+Date.now(),client:cli?.nom||clientSel?.value||"",formation:form?.label||formSel?.value||"",dateDebut:document.getElementById("ns-debut")?.value||"",nbStag:parseInt(document.getElementById("ns-nbstag")?.value)||0,montantHT:parseFloat(document.getElementById("ns-montant")?.value)||0,statut:document.getElementById("ns-statut")?.value||"planifie",attestations:false};
+  sessions=[s,...sessions];
+  addLog(`${currentUser.name} a ajouté session: ${s.formation} — ${s.client}`);
+  render();
+}
+
+function renderFormations(){
+  const cats={incendie:{label:"🔥 Sécurité Incendie",cls:"cat-incendie"},sst:{label:"🩺 Secourisme / SST",cls:"cat-sst"},elec:{label:"⚡ Habilitation Électrique",cls:"cat-elec"},ergo:{label:"💪 Ergonomie / PRAP",cls:"cat-ergo"},haccp:{label:"🍽️ HACCP / Hygiène",cls:"cat-haccp"},mgmt:{label:"📊 Management / Prévention",cls:"cat-mgmt"},caces:{label:"🚜 CACES",cls:"cat-caces"},ferro:{label:"🚂 Ferroviaire",cls:"cat-ferro"}};
+  const filterCat=catFilter==="all"?FORMATIONS_CAT:FORMATIONS_CAT.filter(f=>f.cat===catFilter);
+  return`<div>
+    <div class="tabs" style="margin-bottom:12px;flex-wrap:wrap">
+      <span class="tab ${catFilter==="all"?"active":""}" onclick="catFilter='all';render()">Tout</span>
+      ${Object.entries(cats).map(([k,v])=>`<span class="tab ${catFilter===k?"active":""}" onclick="catFilter='${k}';render()">${v.label}</span>`).join("")}
+    </div>
+    <div style="font-size:11px;color:#999;margin-bottom:8px">${filterCat.length} formation(s)</div>
+    ${filterCat.map(f=>`<div class="formation-card">
+      <div style="flex:1">
+        <div><span class="cat-tag ${cats[f.cat]?.cls||''}">${cats[f.cat]?.label||f.cat}</span></div>
+        <div style="font-weight:600;font-size:13px;margin-top:3px">${f.label}</div>
+        <div style="font-size:11px;color:#888;margin-top:2px">${f.duree?`${f.duree}h`:""} ${f.certifiant?"· 🎓 Certifiant":""}</div>
+      </div>
+      <div style="text-align:right;min-width:80px">
+        ${f.prixIntra?`<div style="font-size:11px;color:#555"><span style="color:#999">Intra:</span> ${f.prixIntra}€</div>`:""}
+        ${f.prixInter?`<div style="font-size:11px;color:#555"><span style="color:#999">Inter:</span> ${f.prixInter}€/pers</div>`:""}
+        ${!f.prixIntra&&!f.prixInter?`<div style="font-size:10px;color:#ccc">Sur devis</div>`:""}
+      </div>
+    </div>`).join("")}
+  </div>`;
+}
+
+function renderPasswords(){
+  return`<div>
+    <div style="background:#FDECEA;border:1px solid #E53935;border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:#C00000">
+      🔒 <strong>Confidentiel</strong> — Accès réservé à l'équipe PROPREV. Ne jamais partager ces identifiants.
+    </div>
+    <div class="section-title">Identifiants OPCO par client</div>
+    ${OPCO_PASSWORDS.map(p=>`<div class="pwd-card">
+      <div class="pwd-client">${p.client} <span style="font-size:10px;color:#666;font-weight:normal">— ${p.opco}</span></div>
+      <div class="pwd-field"><span>Login</span><span class="pwd-value" onclick="copyTxt('${p.login}')" title="Cliquer pour copier">${p.login}</span></div>
+      <div class="pwd-field"><span>Mot de passe</span>
+        <span class="pwd-value" onclick="togglePwd('${p.client}')" id="pwd-${p.client.replace(/[^a-z0-9]/gi,'')}">${showPwd[p.client]?p.password:"••••••••"}</span>
+      </div>
+      ${p.notes?`<div style="font-size:10px;color:#666;margin-top:4px;font-style:italic">📝 ${p.notes}</div>`:""}
+    </div>`).join("")}
+  </div>`;
+}
+function togglePwd(client){showPwd[client]=!showPwd[client];const el=document.getElementById("pwd-"+client.replace(/[^a-z0-9]/gi,""));if(el){const p=OPCO_PASSWORDS.find(x=>x.client===client);el.textContent=showPwd[client]?(p?.password||"Non renseigné"):"••••••••";}}
+function copyTxt(txt){navigator.clipboard?.writeText(txt).then(()=>alert("Copié !")).catch(()=>{});}
+
+function renderFormateurs(){
+  return`<div>
+    <div class="section-title">Formateurs PROPREV (${FORMATEURS_DB.length})</div>
+    ${FORMATEURS_DB.map(f=>`<div class="formateur-card">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div><div class="formateur-name">${f.nom} <span style="font-size:10px;font-weight:normal;color:${f.statut.includes("interne")||f.statut.includes("Dirigeant")?"#1D7044":"#E87722"}">${f.statut}</span></div>
+        <div class="formateur-meta">Tarif : <strong>${f.tarif}</strong>${f.contact?` · ${f.contact}`:""}</div>
+        ${f.siret?`<div class="formateur-meta" style="font-size:10px">SIRET : ${f.siret}${f.nda?` · NDA : ${f.nda}`:""}</div>`:""}
+        <div class="formateur-meta">Certifs : ${f.certifs}</div></div>
+        <button class="btn btn-sm btn-primary" onclick="genContratST('${f.nom}')">Contrat</button>
+      </div>
+      <div style="margin-top:6px">${f.specialites.map(s=>`<span class="competence-tag">${s}</span>`).join("")}</div>
+      <div style="margin-top:4px;font-size:10px;color:#666">Secteurs : ${f.secteurs.join(", ")}</div>
+    </div>`).join("")}
+    <div class="section-title" style="margin-top:16px">Ajouter un formateur</div>
+    <div class="card">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nom Prénom *</label><input class="form-input" id="f-nom" placeholder="NOM Prénom"></div>
+        <div class="form-group"><label class="form-label">Statut</label><select class="form-input" id="f-statut"><option>Vacataire</option><option>Indépendant</option><option>Salarié</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">SIRET</label><input class="form-input" id="f-siret" placeholder="12345678900000"></div>
+        <div class="form-group"><label class="form-label">NDA</label><input class="form-input" id="f-nda" placeholder="11XXXXXXXXXX"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Spécialités</label><input class="form-input" id="f-specs" placeholder="HACCP, SST, Habilitation élec..."></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Secteurs</label><input class="form-input" id="f-secteurs" placeholder="Restauration, BTP..."></div>
+        <div class="form-group"><label class="form-label">Tarif/j ou /h</label><input class="form-input" id="f-tarif" placeholder="Ex: 300€/j"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Contact (email ou tél)</label><input class="form-input" id="f-contact" placeholder="email ou téléphone"></div>
+      <div style="background:#FEF0E6;border-radius:8px;padding:8px;font-size:11px;color:#884000;margin-bottom:10px">
+        ⚠️ Dossier requis avant engagement : NDA + Attestation vigilance (&lt;6 mois) + RC PRO + CV + RIB
+      </div>
+      <button class="btn btn-orange btn-block" onclick="addFormateur()">Ajouter le formateur →</button>
+    </div>
+  </div>`;
+}
+
+function genContratST(nom){
+  const f=FORMATEURS_DB.find(x=>x.nom===nom);
+  if(!f)return;
+  currentDoc="soustraitance";
+  setTab("docs");
+  setTimeout(()=>{
+    const set=(id,v)=>{const el=document.getElementById(id);if(el&&v)el.value=v;};
+    const parts=f.nom.split(" ");
+    set("d-form-nom",parts[0]);set("d-form-prenom",parts.slice(1).join(" "));
+    set("d-form-siret",f.siret||"");set("d-form-nda",f.nda||"");
+  },200);
+}
+
+function addFormateur(){
+  const nom=document.getElementById("f-nom")?.value.trim();
+  if(!nom)return;
+  FORMATEURS_DB.push({nom,statut:document.getElementById("f-statut")?.value,specialites:(document.getElementById("f-specs")?.value||"").split(",").map(s=>s.trim()).filter(Boolean),secteurs:(document.getElementById("f-secteurs")?.value||"").split(",").map(s=>s.trim()).filter(Boolean),tarif:document.getElementById("f-tarif")?.value||"",contact:document.getElementById("f-contact")?.value||"",siret:document.getElementById("f-siret")?.value||"",nda:document.getElementById("f-nda")?.value||"",certifs:""});
+  addLog(`${currentUser.name} a ajouté le formateur : ${nom}`);
+  render();
+}
+
+function renderChat(){
+  const msgs=chatHistory.length===0
+    ?`<div class="msg msg-ai">Bonjour ${currentUser.name} ! Je suis ton assistant PROPREV. Comment puis-je t'aider ?</div>`
+    :chatHistory.map(m=>`<div class="msg msg-${m.role==="user"?"user":"ai"}">${m.content.replace(/\n/g,"<br>")}</div>`).join("");
+  return`<div class="chat-wrap">
+    <div class="chat-messages" id="chat-msgs">${msgs}</div>
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chat-in" placeholder="Pose ta question..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+      <button class="btn btn-primary" onclick="sendChat()">→</button>
+    </div>
+  </div>`;
+}
+
+function renderAdmin(){
+  return`<div>
+    <div class="section-title">Dispatcher une tâche</div>
+    ${dispatchMsg?`<div class="success-msg">${dispatchMsg}</div>`:""}
+    <div class="card">
+      <div class="form-group"><label class="form-label">Titre *</label><input class="form-input" id="d-title" placeholder="Ex: Préparer convention EXA SIGNAL"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Assigné à *</label><select class="form-input" id="d-assign">
+          ${Object.values(USERS).filter(u=>!u.admin).map(u=>`<option value="${u.id}">${u.name}</option>`).join("")}
+        </select></div>
+        <div class="form-group"><label class="form-label">Priorité *</label><select class="form-input" id="d-prio">
+          <option value="urgent">🔴 Urgent</option><option value="important">🟠 Important</option><option value="normal">🟢 Normal</option>
+        </select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Catégorie</label><select class="form-input" id="d-cat"><option value="PROPREV">PROPREV</option><option value="CFA">CFA</option></select></div>
+        <div class="form-group"><label class="form-label">Client</label><input class="form-input" id="d-client-admin" placeholder="Nom client"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Échéance</label><input class="form-input" id="d-deadline" placeholder="JJ/MM/AAAA"></div>
+        <div class="form-group"><label class="form-label">Notes</label><input class="form-input" id="d-notes" placeholder="Contexte"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Procédure</label><textarea class="form-input" id="d-proc" placeholder="1. Étape 1&#10;2. Étape 2"></textarea></div>
+      <button class="btn btn-orange btn-block" onclick="dispatchTask()">Dispatcher →</button>
+    </div>
+    <div class="section-title">Vue équipe</div>
+    ${Object.values(USERS).filter(u=>u.id!=="emir").map(u=>{
+      const ut=tasks.filter(t=>t.assignedTo===u.id&&t.status!=="done");
+      return`<div class="team-row">${av(u,36)}<div style="flex:1"><div style="font-size:13px;font-weight:600">${u.name}</div><div style="font-size:11px;color:#666">${u.role}</div></div>
+      <div style="text-align:right"><div style="font-size:20px;font-weight:700;color:${ut.filter(t=>t.priority==="urgent").length>0?"#C00000":"#1B3A6B"}">${ut.length}</div><div style="font-size:10px;color:#999">tâches</div></div></div>`;
+    }).join("")}
+    ${activityLog.length>0?`<div class="section-title">Journal</div><div class="card" style="padding:8px 12px">${activityLog.slice(0,8).map(l=>`<div class="log-item"><span class="log-time">${l.time}</span><span><b>${l.user}</b> — ${l.msg}</span></div>`).join("")}</div>`:""}
+  </div>`;
+}
+
+function renderPassation(){
+  const secs=["aya","basma","hajar"];
+  const isSec=secs.includes(currentUser.id);
+  return`<div>
+    <div style="background:#FFF8F4;border:1px solid #FFCC99;border-radius:10px;padding:10px;margin-bottom:12px;font-size:12px;color:#884000">
+      ⚠️ <strong>Règle d'or :</strong> Je remplis AVANT de partir. L'autre lit EN ARRIVANT.
+    </div>
+    ${isSec?`<div class="card">
+      <div class="form-group"><label class="form-label">De</label><select class="form-input" id="p-from">${secs.map(s=>`<option value="${s}" ${s===currentUser.id?"selected":""}>${USERS[s]?.name}</option>`).join("")}</select></div>
+      <div class="form-group"><label class="form-label">Info à transmettre *</label><textarea class="form-input" id="p-info" placeholder="Ce que tu as fait, ce qui reste, ce qui bloque..."></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Dossier lié</label><input class="form-input" id="p-dossier" placeholder="Ex: FIVE PIZZA"></div>
+        <div class="form-group"><label class="form-label">Urgent ?</label><select class="form-input" id="p-urgent"><option value="non">Non</option><option value="oui">🔴 OUI</option></select></div>
+      </div>
+      <button class="btn btn-orange btn-block" onclick="addPassation()">Enregistrer →</button>
+    </div>`:`<p style="font-size:12px;color:#666;margin-bottom:12px">Consultation seule</p>`}
+    <div class="section-title">Passations récentes</div>
+    <div id="passation-list"><div class="empty">Chargement...</div></div>
+  </div>`;
+}
+
+// ═══ ACTIONS ═══
+async function login(uid){currentUser=USERS[uid];chatHistory=[];currentTab="dashboard";currentDoc=null;catFilter="all";await addLog(`${currentUser.name} s'est connecté(e)`);subscribeDB();render();}
+function logout(){currentUser=null;chatHistory=[];currentDoc=null;catFilter="all";render();}
+function setTab(tab){currentTab=tab;currentDoc=null;catFilter="all";render();if(tab==="chat")setTimeout(scrollChat,100);if(tab==="passation")loadPassations();}
+function toggleProc(id){document.getElementById("pb-"+id)?.classList.toggle("open");}
+async function chStatus(id,status){const t=tasks.find(x=>x.id===id);if(!t)return;await updateTask(id,{status});await addLog(`${currentUser.name} → ${t.title.slice(0,35)}: ${status}`);}
+async function resolveAlert(id){const a=alerts.find(x=>x.id===id);await updateAlert(id,{status:"done"});await addLog(`${currentUser.name} a résolu: ${a?.problem||""}`);}
+async function dispatchTask(){
+  const title=document.getElementById("d-title")?.value.trim();
+  if(!title)return;
+  const task={title,assignedTo:document.getElementById("d-assign")?.value,priority:document.getElementById("d-prio")?.value,category:document.getElementById("d-cat")?.value,client:document.getElementById("d-client-admin")?.value||"",deadline:document.getElementById("d-deadline")?.value||"",notes:document.getElementById("d-notes")?.value||"",procedure:document.getElementById("d-proc")?.value||""};
+  await addTaskToDB(task);
+  await addLog(`Emir a assigné "${title}" à ${USERS[task.assignedTo]?.name}`);
+  dispatchMsg=`✅ Assigné à ${USERS[task.assignedTo]?.name} !`;
+  ["d-title","d-client-admin","d-deadline","d-notes","d-proc"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});
+  render();
+  setTimeout(()=>{dispatchMsg="";render();},3000);
+}
+async function sendChat(){
+  const inp=document.getElementById("chat-in");
+  if(!inp||!inp.value.trim())return;
+  const msg=inp.value.trim();inp.value="";
+  chatHistory.push({role:"user",content:msg});render();scrollChat();
+  const el=document.getElementById("chat-msgs");
+  if(el){const t=document.createElement("div");t.className="msg msg-thinking";t.textContent="Réflexion...";el.appendChild(t);el.scrollTop=el.scrollHeight;}
+  try{const r=await callClaude(msg);chatHistory.push({role:"assistant",content:r});}
+  catch(e){chatHistory.push({role:"assistant",content:"Erreur de connexion. Réessaie."});}
+  render();scrollChat();
+}
+function scrollChat(){const el=document.getElementById("chat-msgs");if(el)el.scrollTop=el.scrollHeight;}
+async function addPassation(){
+  const info=document.getElementById("p-info")?.value.trim();if(!info)return;
+  const p={from:USERS[document.getElementById("p-from")?.value]?.name||"",info,dossier:document.getElementById("p-dossier")?.value||"",urgent:document.getElementById("p-urgent")?.value==="oui",time:new Date().toLocaleString("fr-FR",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit"})};
+  try{await db.collection("passations").add({...p,createdAt:firebase.firestore.FieldValue.serverTimestamp()});}catch(e){}
+  document.getElementById("p-info").value="";
+  await addLog(`${currentUser.name} a ajouté une passation`);
+  loadPassations();
+}
+async function loadPassations(){
+  const el=document.getElementById("passation-list");if(!el)return;
+  try{
+    const s=await db.collection("passations").orderBy("createdAt","desc").limit(10).get();
+    if(s.empty){el.innerHTML=`<div class="empty">Aucune passation</div>`;return;}
+    el.innerHTML=s.docs.map(d=>{const p=d.data();return`<div class="passation-card"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-weight:600;font-size:13px">${p.from}</span><span style="font-size:10px;color:#777">${p.time}</span></div>${p.urgent?`<span class="badge b-urgent">🔴 URGENT</span><br>`:""}${p.info}${p.dossier?`<div style="font-size:10px;color:#666;margin-top:3px">Dossier: ${p.dossier}</div>`:""}</div>`;}).join("");
+  }catch(e){el.innerHTML=`<div class="empty">Erreur chargement</div>`;}
+}
+
+// ═══ MAIN RENDER ═══
+function render(){
+  const app=document.getElementById("app");if(!app)return;
+  if(!currentUser){app.innerHTML=`<div class="app">${renderLogin()}</div>`;return;}
+  const alertCount=alerts.filter(a=>(a.assignedTo===currentUser.id||currentUser.admin)&&a.status!=="done").length;
+  const navItems=[
+    {id:"dashboard",icon:"⌂",label:"Accueil"},
+    {id:"tasks",icon:"✓",label:"Tâches"},
+    {id:"alerts",icon:"!",label:alertCount?`Alertes(${alertCount})`:"Alertes"},
+    {id:"docs",icon:"📄",label:"Documents"},
+    {id:"clients",icon:"🏢",label:"Clients"},
+    {id:"sessions",icon:"📅",label:"Sessions"},
+    {id:"formations",icon:"📚",label:"Formations"},
+    {id:"passwords",icon:"🔑",label:"OPCO"},
+    {id:"formateurs",icon:"👨‍🏫",label:"Formateurs"},
+    {id:"chat",icon:"✦",label:"Claude"},
+    {id:"passation",icon:"↔",label:"Passation"},
+    ...(currentUser.admin?[{id:"admin",icon:"⚙",label:"Admin"}]:[]),
+  ];
+  const pages={dashboard:renderDashboard,tasks:renderTasks,alerts:renderAlerts,docs:renderDocs,clients:renderClients,sessions:renderSessions,formations:renderFormations,passwords:renderPasswords,formateurs:renderFormateurs,chat:renderChat,admin:renderAdmin,passation:renderPassation};
+  const content=(pages[currentTab]||renderDashboard)();
+  app.innerHTML=`<div class="app">
+    <div class="header no-print">
+      <div class="header-brand">PROPREV <span>●</span><span class="fb-badge fb-ok">Base OK</span></div>
+      <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);border-radius:20px;padding:4px 10px 4px 5px;cursor:pointer" onclick="logout()">
+        ${av(currentUser,24)}<span style="font-size:12px">${currentUser.name}</span><span style="opacity:.6;font-size:11px">↩</span>
+      </div>
+    </div>
+    <div class="nav no-print">${navItems.map(n=>`<button class="nav-btn ${currentTab===n.id?"active":""}" onclick="setTab('${n.id}')"><span class="nav-icon">${n.icon}</span><span>${n.label}</span></button>`).join("")}</div>
+    <div class="content">${content}</div>
+  </div>`;
+  if(currentTab==="chat")scrollChat();
+}
+
+// ═══ EXPOSE ═══
+window.login=login;window.logout=logout;window.setTab=setTab;
+window.toggleProc=toggleProc;window.chStatus=chStatus;
+window.resolveAlert=resolveAlert;window.dispatchTask=dispatchTask;
+window.sendChat=sendChat;window.addPassation=addPassation;
+window.showDoc=showDoc;window.genDoc=genDoc;
+window.togglePwd=togglePwd;window.copyTxt=copyTxt;
+window.addFormateur=addFormateur;window.addStagRow=addStagRow;
+window.removeStagRow=removeStagRow;window.importStagCSV=importStagCSV;
+window.fillClientFields=fillClientFields;window.fillFormationFields=fillFormationFields;
+window.genContratST=genContratST;window.startDoc=startDoc;
+window.addSession=addSession;window.showNewSession=showNewSession;
+
+render();
+initDB().catch(e=>console.error(e));
+</script>
+</body>
+</html>
